@@ -37,7 +37,7 @@ Kontakt
 | **Schriftart/-größe**     | z. B. Arial oder Times New Roman, 11pt| z. B. Arial oder Times New Roman, 11pt      |
 | **Zeilenabstand**         | ca. 1,5-zeilig                         | ca. 1,5-zeilig                               |
 | **Ränder**                | Links: 3 cm, Rechts: 2,5 cm           | Links: 3 cm, Rechts: 2,5 cm                 |
-| **Abgabe an der DHBW**    | Digital auf Moodle (ggf. Absprache)   | Digital auf Moodle (ggf. Absprache)         |
+| **Abgabe an der DHBW**    | Studiengangsleitung fragen | Studiengangsleitung fragen |
 | **Abgabe bei mir**        | Digital als .pdf                      | Digital als .pdf                            |
 | **Eigenständigkeitserklärung** | Pflicht                       | Pflicht                                     |
 | **Zitierstil**            | Frei wählbar, aber konsequent         | Frei wählbar, aber konsequent               |
