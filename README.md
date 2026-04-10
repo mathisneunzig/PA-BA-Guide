@@ -377,4 +377,4 @@ zu beachten:
 
 ---
 
-📨 *Bei Unsicherheiten: mathis.neunzig@gmail.com oder über vereinbarte Kanäle!*
+📨 *Bei Unsicherheiten: dhbw@mathis-neunzig.de oder über vereinbarte Kanäle!*
