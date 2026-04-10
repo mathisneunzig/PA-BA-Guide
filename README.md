@@ -10,7 +10,7 @@ Die folgenden (formalen) Vorgaben orientieren sich an der Prüfungsordnung der D
 
 Kontakt
 
-- mathis.neunzig@gmail.com
+- dhbw@mathis-neunzig.de
 - Telefonnummer, die in der Vorlesung rausgegeben wird
 
 ---
