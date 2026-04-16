@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  GUEST
+}
+
+model User {
+  id        String  @id @default(cuid())
+  firstname String?
+  lastname  String?
+  username  String  @unique
+  email     String  @unique
+  phone     String?
+  password  String
+
+  // Billing address
+  street  String?
+  housenr String?
+  zipcode String?
+  city    String?
+  country String?
+
+  // Delivery address
+  del_street  String?
+  del_housenr String?
+  del_zipcode String?
+  del_city    String?
+  del_country String?
+
+  role Role @default(GUEST)
+
+  // Email verification
+  email_verified       Boolean   @default(false)
+  email_verify_token   String?   @unique
+  email_verify_expires DateTime?
+
+  // Password reset
+  reset_token         String?   @unique
+  reset_token_expires DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans Loan[]
+
+  @@map("users")
+}
+
+enum LoanStatus {
+  RESERVED
+  ACTIVE
+  RETURNED
+  OVERDUE
+  CANCELLED
+}
+
+model Book {
+  id                String  @id        // EAN-13 barcode (e.g. "0201234567897")
+  title             String
+  author            String
+  isbn13            String?            // standard ISBN if different from barcode
+  publisher         String?
+  year              Int?
+  description       String? @db.Text
+  coverUrl          String?
+  genre             String?
+  language          String? @default("de")
+  totalCopies       Int     @default(1)
+  availableCopies   Int     @default(1)
+  loanDurationWeeks Int     @default(13) // per-book default, max 13
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans Loan[]
+
+  @@map("books")
+}
+
+model Loan {
+  id               String     @id @default(cuid())
+  userId           String
+  bookId           String
+  status           LoanStatus @default(RESERVED)
+  startDate        DateTime
+  dueDate          DateTime
+  returnedAt       DateTime?
+  loanDurationDays Int
+  notes            String?    @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@map("loans")
+}
+
+model Config {
+  key   String @id
+  value String
+
+  @@map("config")
+}
