@@ -5,9 +5,13 @@ import { useSearchParams } from 'next/navigation'
 import { LoanStatus } from '@prisma/client'
 import {
   Box, Button, Chip, CircularProgress, Container, Stack,
-  Table, TableBody, TableCell, TableHead, TableRow, Typography,
+  Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import PinDropIcon from '@mui/icons-material/PinDrop'
+import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk'
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import Link from 'next/link'
 import LoanStatusActions from './LoanStatusActions'
 
@@ -24,12 +28,57 @@ const STATUS_COLOR: Record<LoanStatus, 'warning' | 'success' | 'default' | 'erro
   RESERVED: 'warning', ACTIVE: 'success', RETURNED: 'default', OVERDUE: 'error', CANCELLED: 'default',
 }
 
+const HANDOVER_LABEL: Record<string, string> = {
+  PICKUP: 'Abholung',
+  MEETINGPOINT: 'Treffpunkt',
+  SHIPPING: 'Versand',
+  DROPOFF: 'Vorbeibringen',
+}
+const HANDOVER_ICON: Record<string, React.ReactNode> = {
+  PICKUP: <MeetingRoomIcon fontSize="inherit" />,
+  MEETINGPOINT: <PinDropIcon fontSize="inherit" />,
+  SHIPPING: <LocalShippingIcon fontSize="inherit" />,
+  DROPOFF: <DirectionsWalkIcon fontSize="inherit" />,
+}
+
 interface Loan {
   id: string
   status: LoanStatus
   dueDate: string
+  handoverMethod: string | null
+  handoverDate: string | null
+  handoverLocation: string | null
+  handoverCost: number | null
   book: { title: string }
   user: { username: string; email: string }
+}
+
+function HandoverCell({ loan }: { loan: Loan }) {
+  if (!loan.handoverMethod) return <Typography variant="caption" color="text.disabled">—</Typography>
+
+  const label = HANDOVER_LABEL[loan.handoverMethod] ?? loan.handoverMethod
+  const icon = HANDOVER_ICON[loan.handoverMethod]
+
+  const details: string[] = []
+  if (loan.handoverDate) details.push(new Date(loan.handoverDate).toLocaleDateString('de-DE'))
+  if (loan.handoverLocation) details.push(loan.handoverLocation)
+  if (loan.handoverCost != null) details.push(`${Number(loan.handoverCost).toFixed(2)} €`)
+
+  const tooltipText = details.length > 0 ? details.join(' · ') : label
+
+  return (
+    <Tooltip title={tooltipText} placement="top">
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
+        <Box sx={{ color: 'text.secondary', fontSize: 14, display: 'flex' }}>{icon}</Box>
+        <Typography variant="caption">{label}</Typography>
+        {details.length > 0 && (
+          <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
+            · {details[0]}
+          </Typography>
+        )}
+      </Box>
+    </Tooltip>
+  )
 }
 
 function AdminLoansContent() {
@@ -102,6 +151,7 @@ function AdminLoansContent() {
                 <TableCell>Buch</TableCell>
                 <TableCell>Nutzer</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Übergabe</TableCell>
                 <TableCell>Fällig</TableCell>
                 <TableCell>Aktionen</TableCell>
               </TableRow>
@@ -124,6 +174,9 @@ function AdminLoansContent() {
                     />
                   </TableCell>
                   <TableCell>
+                    <HandoverCell loan={loan} />
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="body2" color={loan.status === 'OVERDUE' ? 'error' : 'inherit'}>
                       {new Date(loan.dueDate).toLocaleDateString('de-DE')}
                     </Typography>
@@ -135,7 +188,7 @@ function AdminLoansContent() {
               ))}
               {loans.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     Keine Ausleihen gefunden.
                   </TableCell>
                 </TableRow>

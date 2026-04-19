@@ -63,20 +63,30 @@ enum LoanStatus {
   CANCELLED
 }
 
+enum HandoverMethod {
+  PICKUP       // Abholung durch den Nutzer
+  MEETINGPOINT // Treffpunkt vereinbaren
+  SHIPPING     // Zusendet (mit Versandkosten)
+  DROPOFF      // Nutzer bringt Buch selbst vorbei
+}
+
 model Book {
-  id                String  @id        // EAN-13 barcode (e.g. "0201234567897")
-  title             String
-  author            String
-  isbn13            String?            // standard ISBN if different from barcode
-  publisher         String?
-  year              Int?
-  description       String? @db.Text
-  coverUrl          String?
-  genre             String?
-  language          String? @default("de")
-  totalCopies       Int     @default(1)
-  availableCopies   Int     @default(1)
-  loanDurationWeeks Int     @default(13) // per-book default, max 13
+  id                  String  @id        // EAN-13 barcode (e.g. "0201234567897")
+  title               String
+  author              String
+  isbn13              String?            // standard ISBN if different from barcode
+  publisher           String?
+  year                Int?
+  description         String? @db.Text
+  coverUrl            String?
+  tags                String? // comma-separated Themengebiete, e.g. "Informatik,Datenbanken"
+  programmiersprachen String? // comma-separated, e.g. "Python,Java"
+  hauptkategorie      String? // e.g. "SAP", "KI", "SWA"
+  regalnummer         String? // e.g. "SAP0001"
+  language            String? @default("de")
+  totalCopies         Int     @default(1)
+  availableCopies     Int     @default(1)
+  loanDurationWeeks   Int     @default(13) // per-book default, max 13
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -96,6 +106,12 @@ model Loan {
   returnedAt       DateTime?
   loanDurationDays Int
   notes            String?    @db.Text
+
+  // Handover / pickup details
+  handoverMethod   HandoverMethod?
+  handoverDate     DateTime?        // PICKUP / MEETINGPOINT / DROPOFF
+  handoverLocation String?          // MEETINGPOINT: where to meet
+  handoverCost     Decimal?  @db.Decimal(8, 2) // SHIPPING: shipping cost in €
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

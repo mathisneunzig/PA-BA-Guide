@@ -8,8 +8,12 @@ export const CreateBookSchema = z.object({
   publisher: z.string().max(255).optional(),
   year: z.number().int().min(1000).max(new Date().getFullYear() + 1).optional(),
   description: z.string().optional(),
-  coverUrl: z.string().url().optional(),
-  genre: z.string().max(100).optional(),
+  coverUrl: z.string().max(500).optional().or(z.literal('')),
+  // tags: comma-separated string stored in DB, e.g. "Informatik,Datenbanken"
+  tags: z.string().max(500).optional(),
+  programmiersprachen: z.string().max(500).optional(),
+  hauptkategorie: z.string().max(50).optional(),
+  regalnummer: z.string().max(50).optional(),
   language: z.string().max(10).optional(),
   totalCopies: z.number().int().min(1).default(1),
   availableCopies: z.number().int().min(0).optional(),
@@ -20,10 +24,12 @@ export const UpdateBookSchema = CreateBookSchema.partial().omit({ id: true })
 
 export const BookSearchSchema = z.object({
   q: z.string().optional(),
-  genre: z.string().optional(),
+  tags: z.string().optional(),
+  programmiersprachen: z.string().optional(),
+  hauptkategorie: z.string().optional(),
   language: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(500).default(20),
 })
 
 export type CreateBookInput = z.infer<typeof CreateBookSchema>

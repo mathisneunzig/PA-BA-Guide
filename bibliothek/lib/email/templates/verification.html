@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Mail-Adresse bestätigen</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 520px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header { background: #1976d2; color: #fff; padding: 28px 32px; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .body { padding: 32px; color: #333; }
+    .body p { margin: 0 0 16px; line-height: 1.6; }
+    .btn { display: inline-block; margin: 8px 0 20px; padding: 12px 28px; background: #1976d2; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; }
+    .footer { background: #f9f9f9; border-top: 1px solid #eee; padding: 16px 32px; font-size: 12px; color: #888; }
+    .url { font-family: monospace; font-size: 12px; color: #555; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Bibliothek</h1>
+    </div>
+    <div class="body">
+      <p>Willkommen! Bitte bestätige deine E-Mail-Adresse, indem du auf den Button unten klickst.</p>
+      <p>Der Link ist <strong>24 Stunden</strong> gültig.</p>
+      <a class="btn" href="{{url}}">E-Mail bestätigen</a>
+      <p>Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:</p>
+      <p class="url">{{url}}</p>
+    </div>
+    <div class="footer">
+      Falls du dich nicht registriert hast, kannst du diese E-Mail ignorieren.
+    </div>
+  </div>
+</body>
+</html>

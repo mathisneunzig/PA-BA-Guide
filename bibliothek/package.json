@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -16,12 +19,15 @@
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "bwip-js": "^4.9.2",
+    "escpos-typescript": "^1.0.1",
+    "minisearch": "^7.2.0",
     "next": "16.2.4",
     "next-auth": "^5.0.0-beta.31",
     "nodemailer": "^7.0.13",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

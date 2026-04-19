@@ -10,20 +10,39 @@ import SearchIcon from '@mui/icons-material/Search'
 import AddIcon from '@mui/icons-material/Add'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import Link from 'next/link'
+import ThemengebietPicker from '@/app/components/ThemengebietPicker'
+import ProgrammiersprachePicker from '@/app/components/ProgrammiersprachePicker'
+import HauptkategoriePicker from '@/app/components/HauptkategoriePicker'
+import CoverUpload from '@/app/components/CoverUpload'
 
 export default function NewBookPage() {
   const router = useRouter()
   const [form, setForm] = useState({
     isbn: '', title: '', author: '', publisher: '', year: '',
-    genre: '', language: 'de', totalCopies: '1', loanDurationWeeks: '13',
-    description: '', coverUrl: '',
+    language: 'de', totalCopies: '1', loanDurationWeeks: '13',
+    description: '', coverUrl: '', hauptkategorie: '', regalnummer: '',
   })
+  const [tags, setTags] = useState<string[]>([])
+  const [programmiersprachen, setProgrammiersprachen] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [error, setError] = useState('')
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleHauptkategorieChange(code: string) {
+    set('hauptkategorie', code)
+    // Only auto-suggest if regalnummer is still empty or was auto-generated (starts with old code)
+    if (!code) { set('regalnummer', ''); return }
+    try {
+      const res = await fetch(`/api/books/regalnummer/suggest/${code}`)
+      if (res.ok) {
+        const data = await res.json()
+        set('regalnummer', data.regalnummer)
+      }
+    } catch { /* ignore */ }
   }
 
   async function handleIsbnLookup() {
@@ -46,6 +65,11 @@ export default function NewBookPage() {
         coverUrl: data.coverUrl ?? prev.coverUrl,
         language: data.language ?? prev.language,
       }))
+      // Auto-populate tags from API metadata
+      if (data.tags) {
+        const suggested = data.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        if (suggested.length > 0) setTags(suggested)
+      }
     } finally {
       setLookupLoading(false)
     }
@@ -65,7 +89,10 @@ export default function NewBookPage() {
           isbn13: form.isbn || undefined,
           publisher: form.publisher || undefined,
           year: form.year ? parseInt(form.year, 10) : undefined,
-          genre: form.genre || undefined,
+          tags: tags.length > 0 ? tags.join(',') : undefined,
+          programmiersprachen: programmiersprachen.length > 0 ? programmiersprachen.join(',') : undefined,
+          hauptkategorie: form.hauptkategorie || undefined,
+          regalnummer: form.regalnummer || undefined,
           language: form.language || 'de',
           description: form.description || undefined,
           coverUrl: form.coverUrl || undefined,
@@ -140,11 +167,31 @@ export default function NewBookPage() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 8 }}>{tf('Titel *', 'title', true)}</Grid>
               <Grid size={{ xs: 12, sm: 4 }}>{tf('Jahr', 'year', false, 'number')}</Grid>
-              <Grid size={{ xs: 12, sm: 8 }}>{tf('Autor *', 'author', true)}</Grid>
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <TextField
+                  label="Autor *"
+                  name="author"
+                  value={form.author}
+                  onChange={(e) => set('author', e.target.value)}
+                  required
+                  fullWidth
+                  size="small"
+                  helperText="Format: Nachname, Vorname (wird beim Auto-Fill automatisch normalisiert)"
+                />
+              </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>{tf('Sprache', 'language')}</Grid>
               <Grid size={{ xs: 12, sm: 6 }}>{tf('Verlag', 'publisher')}</Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Genre', 'genre')}</Grid>
-              <Grid size={12}>{tf('Cover URL', 'coverUrl')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf('Anzahl Exemplare', 'totalCopies', true, 'number')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <HauptkategoriePicker value={form.hauptkategorie} onChange={handleHauptkategorieChange} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf('Regalnummer', 'regalnummer')}</Grid>
+              <Grid size={12}>
+                <ThemengebietPicker selected={tags} onChange={setTags} />
+              </Grid>
+              <Grid size={12}>
+                <ProgrammiersprachePicker selected={programmiersprachen} onChange={setProgrammiersprachen} />
+              </Grid>
               <Grid size={12}>
                 <TextField
                   label="Beschreibung"
@@ -156,16 +203,18 @@ export default function NewBookPage() {
                   size="small"
                 />
               </Grid>
+              <Grid size={12}>
+                <CoverUpload value={form.coverUrl} onChange={(url) => set('coverUrl', url)} />
+              </Grid>
             </Grid>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Verfügbarkeit</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Ausleihe</Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid size={6}>{tf('Anzahl Exemplare', 'totalCopies', true, 'number')}</Grid>
               <Grid size={6}>{tf('Max. Ausleihdauer (Wochen)', 'loanDurationWeeks', true, 'number')}</Grid>
             </Grid>
           </CardContent>

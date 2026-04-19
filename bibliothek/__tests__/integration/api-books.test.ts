@@ -25,6 +25,14 @@ jest.mock('../../lib/books/barcode', () => ({
   validateEan13: jest.fn().mockReturnValue(true),
 }))
 
+// Mock MiniSearch index so we control fuzzy search results
+jest.mock('../../lib/books/search-index', () => ({
+  getSearchIndex: jest.fn().mockResolvedValue({
+    search: jest.fn().mockReturnValue([{ id: '0209999999995' }]),
+  }),
+  invalidateSearchIndex: jest.fn(),
+}))
+
 
 import { GET as listBooks, POST as createBook } from '@/app/api/books/route'
 import { GET as getBook, PUT as updateBook, DELETE as deleteBook } from '@/app/api/books/[barcode]/route'
@@ -82,16 +90,19 @@ describe('GET /api/books', () => {
     expect(json.total).toBe(1)
   })
 
-  it('filters by query param q', async () => {
-    prisma.book.findMany.mockResolvedValue([])
-    prisma.book.count.mockResolvedValue(0)
+  it('filters by query param q using fuzzy search', async () => {
+    prisma.book.findMany.mockResolvedValue([MOCK_BOOK])
+    prisma.book.count.mockResolvedValue(1)
 
     const req = makeReq('GET', 'http://localhost/api/books?q=knuth')
-    await listBooks(req)
+    const res = await listBooks(req)
+    const json = await res.json()
 
+    expect(res.status).toBe(200)
+    // With mock, search returns id '0209999999995' — Prisma query uses id: { in: [...] }
     expect(prisma.book.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ OR: expect.any(Array) }),
+        where: expect.objectContaining({ id: expect.objectContaining({ in: expect.any(Array) }) }),
       }),
     )
   })

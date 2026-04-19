@@ -4,7 +4,8 @@ import { verifySession } from '@/lib/auth/dal'
 import { computeDueDate } from '@/lib/loans/loan-service'
 import { countOverlappingLoans } from '@/lib/loans/availability'
 import { CreateLoanSchema } from '@/lib/validation/loan.schemas'
-import { sendReservationConfirmationEmail } from '@/lib/email/send'
+import { sendReservationConfirmationEmail, sendLoanReceiptEmail } from '@/lib/email/send'
+import { LoanStatus } from '@prisma/client'
 
 /** GET /api/loans — own loans only */
 export async function GET(_request: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json({ loans })
 }
 
-/** POST /api/loans — create reservation (STUDENT or ADMIN) */
+/** POST /api/loans — create reservation or direct loan (STUDENT or ADMIN) */
 export async function POST(request: NextRequest) {
   const session = await verifySession()
 
@@ -31,8 +32,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { bookId, startDate: startDateStr, durationDays, notes } = parsed.data
-  const startDate = new Date(startDateStr)
+  const { bookId, startDate: startDateStr, durationDays, notes, immediate,
+          handoverMethod, handoverDate, handoverLocation, handoverCost } = parsed.data
+
+  // Only admins can create a direct ACTIVE loan
+  if (immediate && session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Only admins can create direct loans' }, { status: 403 })
+  }
+
+  const startDate = immediate ? new Date() : new Date(startDateStr)
   const dueDate = computeDueDate(startDate, durationDays)
 
   const book = await prisma.book.findUnique({
@@ -55,6 +63,11 @@ export async function POST(request: NextRequest) {
         dueDate,
         loanDurationDays: durationDays,
         notes,
+        status: immediate ? LoanStatus.ACTIVE : LoanStatus.RESERVED,
+        handoverMethod: handoverMethod ?? null,
+        handoverDate: handoverDate ? new Date(handoverDate) : null,
+        handoverLocation: handoverLocation ?? null,
+        handoverCost: handoverCost != null ? handoverCost : null,
       },
     })
     await tx.book.update({
@@ -70,13 +83,22 @@ export async function POST(request: NextRequest) {
     select: { email: true },
   })
   if (user?.email) {
-    sendReservationConfirmationEmail({
-      to: user.email,
-      bookTitle: book.title,
-      startDate,
-      dueDate,
-      loanId: loan.id,
-    }).catch(() => {})
+    if (immediate) {
+      sendLoanReceiptEmail({
+        to: user.email,
+        bookTitle: book.title,
+        dueDate: loan.dueDate,
+        loanId: loan.id,
+      }).catch(() => {})
+    } else {
+      sendReservationConfirmationEmail({
+        to: user.email,
+        bookTitle: book.title,
+        startDate,
+        dueDate,
+        loanId: loan.id,
+      }).catch(() => {})
+    }
   }
 
   return NextResponse.json(loan, { status: 201 })

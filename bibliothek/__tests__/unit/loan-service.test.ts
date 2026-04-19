@@ -129,14 +129,25 @@ describe('returnLoan', () => {
 })
 
 describe('cancelLoan', () => {
-  it('throws when status is not RESERVED', async () => {
+  it('throws when status is RETURNED (terminal state)', async () => {
+    const returnedLoan = { ...MOCK_LOAN, status: LoanStatus.RETURNED }
+    const txMock = {
+      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(returnedLoan), update: jest.fn() },
+      book: { update: jest.fn() },
+    }
+    mockTransaction(txMock)
+    await expect(cancelLoan('loan_1')).rejects.toThrow()
+  })
+
+  it('can cancel an ACTIVE loan (admin use case)', async () => {
     const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE }
     const txMock = {
       loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(activeLoan), update: jest.fn() },
       book: { update: jest.fn() },
     }
     mockTransaction(txMock)
-    await expect(cancelLoan('loan_1')).rejects.toThrow('Cannot cancel loan with status ACTIVE')
+    await cancelLoan('loan_1')
+    expect(txMock.loan.update).toHaveBeenCalled()
   })
 
   it('increments availableCopies on success', async () => {

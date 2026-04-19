@@ -205,4 +205,89 @@ describe('DELETE /api/loans/[id]', () => {
     expect(res.status).toBe(200)
     expect(cancelLoan).toHaveBeenCalledWith('loan_1')
   })
+
+  it('returns 403 when non-admin tries to cancel ACTIVE loan', async () => {
+    verifySession.mockResolvedValue(STUDENT_SESSION)
+    prisma.loan.findUnique.mockResolvedValue({ userId: 'stu_1', status: LoanStatus.ACTIVE })
+
+    const req = makeReq('DELETE', 'http://localhost/api/loans/loan_1')
+    const res = await cancelLoanRoute(req, { params: Promise.resolve({ id: 'loan_1' }) })
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('POST /api/loans — handover fields', () => {
+  beforeEach(() => {
+    verifySession.mockResolvedValue(STUDENT_SESSION)
+    prisma.book.findUnique.mockResolvedValue({ totalCopies: 2, title: 'Test', author: 'Auth' })
+    countOverlappingLoans.mockResolvedValue(0)
+    prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
+      const txMock = {
+        loan: { create: jest.fn().mockResolvedValue(MOCK_LOAN) },
+        book: { update: jest.fn() },
+      }
+      return fn(txMock)
+    })
+    prisma.user.findUnique.mockResolvedValue(null)
+  })
+
+  it('saves PICKUP handover method', async () => {
+    const req = makeReq('POST', 'http://localhost/api/loans', {
+      bookId: '0209999999995',
+      startDate: new Date().toISOString(),
+      durationDays: 30,
+      handoverMethod: 'PICKUP',
+      handoverDate: new Date().toISOString(),
+    })
+    const res = await createLoan(req)
+    expect(res.status).toBe(201)
+  })
+
+  it('saves SHIPPING handover method with cost', async () => {
+    const req = makeReq('POST', 'http://localhost/api/loans', {
+      bookId: '0209999999995',
+      startDate: new Date().toISOString(),
+      durationDays: 30,
+      handoverMethod: 'SHIPPING',
+      handoverCost: 4.99,
+    })
+    const res = await createLoan(req)
+    expect(res.status).toBe(201)
+  })
+
+  it('saves MEETINGPOINT handover method with location', async () => {
+    const req = makeReq('POST', 'http://localhost/api/loans', {
+      bookId: '0209999999995',
+      startDate: new Date().toISOString(),
+      durationDays: 30,
+      handoverMethod: 'MEETINGPOINT',
+      handoverDate: new Date().toISOString(),
+      handoverLocation: 'Bibliothek, Zimmer 205',
+    })
+    const res = await createLoan(req)
+    expect(res.status).toBe(201)
+  })
+
+  it('returns 403 when non-admin sends immediate: true', async () => {
+    const req = makeReq('POST', 'http://localhost/api/loans', {
+      bookId: '0209999999995',
+      startDate: new Date().toISOString(),
+      durationDays: 30,
+      immediate: true,
+    })
+    const res = await createLoan(req)
+    expect(res.status).toBe(403)
+  })
+
+  it('allows admin to create immediate ACTIVE loan', async () => {
+    verifySession.mockResolvedValue(ADMIN_SESSION)
+    const req = makeReq('POST', 'http://localhost/api/loans', {
+      bookId: '0209999999995',
+      startDate: new Date().toISOString(),
+      durationDays: 30,
+      immediate: true,
+    })
+    const res = await createLoan(req)
+    expect(res.status).toBe(201)
+  })
 })

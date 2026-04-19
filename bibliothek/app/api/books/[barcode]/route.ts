@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/dal'
 import { validateEan13 } from '@/lib/books/barcode'
 import { UpdateBookSchema } from '@/lib/validation/book.schemas'
 import { LoanStatus } from '@prisma/client'
+import { invalidateSearchIndex } from '@/lib/books/search-index'
 
 type Params = { params: Promise<{ barcode: string }> }
 
@@ -34,6 +35,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: 'Book not found' }, { status: 404 })
 
   const book = await prisma.book.update({ where: { id: barcode }, data: parsed.data })
+  invalidateSearchIndex()
   return NextResponse.json(book)
 }
 
@@ -53,5 +55,6 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   }
 
   await prisma.book.delete({ where: { id: barcode } })
+  invalidateSearchIndex()
   return NextResponse.json({ success: true })
 }

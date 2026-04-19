@@ -39,7 +39,7 @@ describe('fetchIsbnMetadata', () => {
     const result = await fetchIsbnMetadata('9780201134971')
 
     expect(result.title).toBe('The Art of Computer Programming')
-    expect(result.author).toBe('Donald E. Knuth')
+    expect(result.author).toBe('Knuth, Donald E.')
     expect(result.publisher).toBe('Addison-Wesley')
     expect(result.language).toBe('eng')
   })
@@ -56,7 +56,7 @@ describe('fetchIsbnMetadata', () => {
     const result = await fetchIsbnMetadata('9780132350884')
 
     expect(result.title).toBe('Clean Code')
-    expect(result.author).toBe('Robert C. Martin')
+    expect(result.author).toBe('Martin, Robert C.')
     expect(result.year).toBe(2008)
   })
 

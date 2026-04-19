@@ -53,11 +53,11 @@ export async function returnLoan(id: string) {
   })
 }
 
-/** RESERVED → CANCELLED: increment availableCopies. */
+/** RESERVED | ACTIVE → CANCELLED: increment availableCopies. */
 export async function cancelLoan(id: string) {
   return prisma.$transaction(async (tx) => {
     const loan = await tx.loan.findUniqueOrThrow({ where: { id } })
-    if (loan.status !== LoanStatus.RESERVED) {
+    if (loan.status !== LoanStatus.RESERVED && loan.status !== LoanStatus.ACTIVE) {
       throw new Error(`Cannot cancel loan with status ${loan.status}`)
     }
     await tx.loan.update({

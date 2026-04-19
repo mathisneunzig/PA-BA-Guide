@@ -1,4 +1,4 @@
-import { Box, Button, Container, Typography, Stack, Paper } from '@mui/material'
+import { Box, Button, Container, Typography, Stack, Paper, Grid } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import SearchIcon from '@mui/icons-material/Search'
 import PersonAddIcon from '@mui/icons-material/PersonAdd'
@@ -27,21 +27,23 @@ export default function HomePage() {
             Durchstöbere unseren Buchkatalog, reserviere Bücher und verwalte deine Ausleihen — alles an einem Ort.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
-            <Link href="/books" style={{ textDecoration: 'none' }}>
-              <Button variant="contained" size="large" startIcon={<SearchIcon />} fullWidth>
-                Bücher durchsuchen
-              </Button>
-            </Link>
-            <Link href="/register" style={{ textDecoration: 'none' }}>
-              <Button variant="outlined" size="large" startIcon={<PersonAddIcon />} fullWidth>
-                Konto erstellen
-              </Button>
-            </Link>
-            <Link href="/login" style={{ textDecoration: 'none' }}>
-              <Button variant="text" size="large" startIcon={<LoginIcon />} fullWidth>
-                Anmelden
-              </Button>
-            </Link>
+            <Grid container size={{ xs: 12 }}>
+              <Link href="/books" style={{ textDecoration: 'none' }}>
+                <Button variant="text" size="large" startIcon={<SearchIcon />} fullWidth>
+                  Bücher suchen
+                </Button>
+              </Link>
+              <Link href="/register" style={{ textDecoration: 'none' }}>
+                <Button variant="text" size="large" startIcon={<PersonAddIcon />} fullWidth>
+                  Konto erstellen
+                </Button>
+              </Link>
+              <Link href="/login" style={{ textDecoration: 'none' }}>
+                <Button variant="text" size="large" startIcon={<LoginIcon />} fullWidth>
+                  Anmelden
+                </Button>
+              </Link>
+            </Grid>
           </Stack>
         </Paper>
       </Container>

@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   return NextResponse.json(loan)
 }
 
-/** PUT /api/loans/[id] — admin only: activate, return, or update notes/dueDate */
+/** PUT /api/loans/[id] — admin only: change status or update notes/dueDate */
 export async function PUT(request: NextRequest, { params }: Params) {
   await requireRole('ADMIN')
   const { id } = await params
@@ -42,15 +42,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (status === 'ACTIVE') {
       const loan = await activateLoan(id)
 
-      // Send receipt email (non-blocking)
-      const user = await prisma.user.findUnique({
-        where: { id: loan.userId },
-        select: { email: true },
-      })
-      const book = await prisma.book.findUnique({
-        where: { id: loan.bookId },
-        select: { title: true },
-      })
+      const [user, book] = await Promise.all([
+        prisma.user.findUnique({ where: { id: loan.userId }, select: { email: true } }),
+        prisma.book.findUnique({ where: { id: loan.bookId }, select: { title: true } }),
+      ])
       if (user?.email && book?.title) {
         sendLoanReceiptEmail({
           to: user.email,
@@ -59,7 +54,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
           loanId: loan.id,
         }).catch(() => {})
       }
-
       return NextResponse.json(loan)
     }
 
@@ -69,7 +63,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json(loan)
     }
 
-    // General update (notes, dueDate extension)
+    if (status === 'CANCELLED') {
+      await cancelLoan(id)
+      const loan = await prisma.loan.findUniqueOrThrow({ where: { id } })
+      return NextResponse.json(loan)
+    }
+
+    if (status === 'OVERDUE') {
+      // Admin can manually mark an active loan as overdue
+      const loan = await prisma.loan.findUniqueOrThrow({ where: { id } })
+      if (loan.status !== 'ACTIVE') {
+        return NextResponse.json({ error: `Cannot mark loan ${loan.status} as overdue` }, { status: 400 })
+      }
+      const updated = await prisma.loan.update({
+        where: { id },
+        data: { status: 'OVERDUE' },
+      })
+      return NextResponse.json(updated)
+    }
+
+    // General update (notes, dueDate extension) — no status change
     const updated = await prisma.loan.update({
       where: { id },
       data: {
@@ -84,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
-/** DELETE /api/loans/[id] — cancel reservation (own or admin) */
+/** DELETE /api/loans/[id] — users can cancel RESERVED loans only; admins can cancel any non-terminal loan */
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const session = await verifySession()
   const { id } = await params
@@ -94,6 +107,11 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
 
   if (loan.userId !== session.user.id && session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Non-admins can only cancel their own RESERVED loans
+  if (session.user.role !== 'ADMIN' && loan.status !== 'RESERVED') {
+    return NextResponse.json({ error: 'You can only cancel reservations, not active loans' }, { status: 403 })
   }
 
   try {

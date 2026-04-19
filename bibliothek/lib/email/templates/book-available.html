@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buch jetzt verfügbar</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 520px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header { background: #2e7d32; color: #fff; padding: 28px 32px; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .body { padding: 32px; color: #333; }
+    .body p { margin: 0 0 16px; line-height: 1.6; }
+    .info-box { background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 4px; padding: 16px 20px; margin: 20px 0; }
+    .info-box p { margin: 4px 0; font-size: 14px; }
+    .btn { display: inline-block; margin: 8px 0 20px; padding: 12px 28px; background: #2e7d32; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; }
+    .footer { background: #f9f9f9; border-top: 1px solid #eee; padding: 16px 32px; font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Dein Buch ist bereit zur Abholung!</h1>
+    </div>
+    <div class="body">
+      <p>Dein reserviertes Buch wurde zurückgegeben und steht jetzt zur Abholung bereit.</p>
+      <div class="info-box">
+        <p><strong>Buch:</strong> {{bookTitle}}</p>
+        {{#if regalnummer}}<p><strong>Regal:</strong> {{regalnummer}}</p>{{/if}}
+      </div>
+      <p>Bitte hole das Buch bald ab, da die Reservierung andernfalls verfallen kann.</p>
+      <a class="btn" href="{{loansUrl}}">Meine Ausleihen ansehen</a>
+    </div>
+    <div class="footer">
+      Du hast diese E-Mail erhalten, weil du ein Konto in unserer Bibliothek hast.
+    </div>
+  </div>
+</body>
+</html>
