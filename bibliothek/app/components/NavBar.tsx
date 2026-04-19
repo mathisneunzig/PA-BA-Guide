@@ -61,9 +61,8 @@ export default function NavBar() {
   }
 
   const drawer = (
-    <Box sx={{ width: 260 }} onClick={() => setDrawerOpen(false)}>
+    <Box sx={{ width: 260 }} onClick={() => setDrawerOpen(true)}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <MenuBookIcon color="primary" />
         <Typography variant="h6" color="primary">Bibliothek</Typography>
       </Box>
       <Divider />
@@ -106,7 +105,6 @@ export default function NavBar() {
               <MenuIcon />
             </IconButton>
           )}
-          <MenuBookIcon color="primary" sx={{ mr: 1 }} />
           <Typography
             variant="h6"
             component={Link}

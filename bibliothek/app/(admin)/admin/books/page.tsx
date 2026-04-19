@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Box, Button, Checkbox, Chip, Container, IconButton,
+  Box, Button, Checkbox, Chip, Container, Dialog, DialogActions,
+  DialogContent, DialogContentText, DialogTitle, IconButton,
   Stack, Table, TableBody, TableCell, TableHead, TableRow,
   Tooltip, Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
 import LabelIcon from '@mui/icons-material/Label'
 import PrintIcon from '@mui/icons-material/Print'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
@@ -34,6 +36,9 @@ export default function AdminBooksPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showPrint, setShowPrint] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Book | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     fetch('/api/books?limit=500')
@@ -71,6 +76,22 @@ export default function AdminBooksPage() {
     }
     setCopied(book.id)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError('')
+    const res = await fetch(`/api/books/${deleteTarget.id}`, { method: 'DELETE' })
+    setDeleting(false)
+    if (res.ok) {
+      setBooks((prev) => prev.filter((b) => b.id !== deleteTarget.id))
+      setSelected((prev) => { const next = new Set(prev); next.delete(deleteTarget.id); return next })
+      setDeleteTarget(null)
+    } else {
+      const d = await res.json()
+      setDeleteError(d.error ?? 'Fehler beim Löschen')
+    }
   }
 
   const selectedBarcodes = Array.from(selected)
@@ -140,11 +161,11 @@ export default function AdminBooksPage() {
                     <img
                       src={book.coverUrl}
                       alt={book.title}
-                      style={{ width: 36, height: 50, objectFit: 'cover', borderRadius: 2, display: 'block', border: '1px solid #e0e0e0' }}
+                      style={{ width: 36, height: 50, objectFit: 'cover', borderRadius: 2, display: 'block', border: '1px solid rgba(0,0,0,0.12)' }}
                     />
                   ) : (
-                    <Box sx={{ width: 36, height: 50, bgcolor: 'grey.100', borderRadius: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <MenuBookIcon sx={{ fontSize: 18, color: 'grey.400' }} />
+                    <Box sx={{ width: 36, height: 50, bgcolor: 'action.hover', borderRadius: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MenuBookIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
                     </Box>
                   )}
                 </TableCell>
@@ -205,6 +226,11 @@ export default function AdminBooksPage() {
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
+                  <Tooltip title="Löschen">
+                    <IconButton size="small" color="error" onClick={() => { setDeleteError(''); setDeleteTarget(book) }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -226,6 +252,27 @@ export default function AdminBooksPage() {
           onClose={() => setShowPrint(false)}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Buch löschen?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <strong>{deleteTarget?.title}</strong> wird unwiderruflich gelöscht. Bücher mit aktiven Ausleihen können nicht gelöscht werden.
+          </DialogContentText>
+          {deleteError && (
+            <DialogContentText color="error" sx={{ mt: 1 }}>
+              {deleteError}
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>Abbrechen</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}>
+            {deleting ? 'Löschen…' : 'Löschen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   )
 }
