@@ -100,6 +100,31 @@ export async function sendBookAvailableEmail({
   })
 }
 
+export type BroadcastTemplate = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general'
+
+export async function sendBroadcastEmail({
+  to,
+  subject,
+  message,
+  template,
+  timeFrom,
+  timeTo,
+}: {
+  to: string
+  subject: string
+  message: string
+  template: BroadcastTemplate
+  timeFrom?: string
+  timeTo?: string
+}) {
+  return getTransport().sendMail({
+    from: FROM(),
+    to,
+    subject,
+    html: renderTemplate(template, { subject, message, timeFrom, timeTo }),
+  })
+}
+
 export async function sendLoanReceiptEmail({
   to,
   bookTitle,

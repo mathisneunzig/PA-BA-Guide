@@ -17,6 +17,7 @@ import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import GroupIcon from '@mui/icons-material/Group'
+import SendIcon from '@mui/icons-material/Send'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -49,6 +50,7 @@ const ADMIN_LINKS = [
   { label: 'Sammelreservierung', href: '/admin/loans/reserve', icon: <BookmarkAddIcon /> },
   { label: 'Rückgabe', href: '/admin/return', icon: <AssignmentReturnIcon /> },
   { label: 'Benutzer verwalten', href: '/admin/users', icon: <GroupIcon /> },
+  { label: 'Rundmail', href: '/admin/broadcast', icon: <SendIcon /> },
 ]
 
 interface NavItemProps {

@@ -18,14 +18,22 @@ export function renderTemplate(name: string, vars: Record<string, string | null 
     cache.set(name, template)
   }
 
-  // Replace {{key}} placeholders
+  // Process {{#if key}}...{{/if}} blocks (innermost first, then outer)
   let rendered = template
+  // Repeat until no more if-blocks remain (handles nesting)
+  let prev = ''
+  while (prev !== rendered) {
+    prev = rendered
+    rendered = rendered.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, key, inner) => {
+      const val = vars[key]
+      return val != null && val !== '' ? inner : ''
+    })
+  }
+
+  // Replace {{key}} placeholders
   for (const [key, value] of Object.entries(vars)) {
     rendered = rendered.replaceAll(`{{${key}}}`, value ?? '')
   }
-
-  // Strip unresolved {{#if ...}}...{{/if}} blocks for missing optional vars
-  rendered = rendered.replace(/\{\{#if \w+\}\}[\s\S]*?\{\{\/if\}\}/g, '')
 
   return rendered
 }
