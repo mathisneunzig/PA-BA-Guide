@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import {
-  Box, Card, CardActionArea, CardContent, CardMedia,
-  Chip, Container, Grid, Stack, Typography,
+  Box, Container, Grid, Typography,
 } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import BooksFilter from '@/app/components/BooksFilter'
+import BookCard from '@/app/components/BookCard'
 import { Suspense } from 'react'
 
 interface SearchParams {
@@ -21,7 +22,7 @@ export default async function BooksPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const sp = await searchParams
+  const [sp, session] = await Promise.all([searchParams, auth()])
   const q = sp.q ?? ''
   const tagsParam = sp.tags ?? ''
   const programmiersprachenParam = sp.programmiersprachen ?? ''
@@ -30,7 +31,6 @@ export default async function BooksPage({
   const limit = 20
   const skip = (page - 1) * limit
 
-  // Multi-value filters: comma-separated values in param
   const tagList = tagsParam ? tagsParam.split(',').filter(Boolean) : []
   const langList = programmiersprachenParam ? programmiersprachenParam.split(',').filter(Boolean) : []
   const hkList = hauptkategorieParam ? hauptkategorieParam.split(',').filter(Boolean) : []
@@ -57,6 +57,8 @@ export default async function BooksPage({
   ])
 
   const pages = Math.ceil(total / limit)
+  const isLoggedIn = !!session?.user
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -81,41 +83,7 @@ export default async function BooksPage({
       <Grid container spacing={2}>
         {books.map((book) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={book.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardActionArea href={`/books/${book.id}`} sx={{ flex: 1 }}>
-                {book.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <CardMedia component="img" image={book.coverUrl} alt={book.title} sx={{ height: 180, objectFit: 'contain', bgcolor: '#fafafa', pt: 1 }} />
-                ) : (
-                  <Box sx={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100' }}>
-                    <MenuBookIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-                  </Box>
-                )}
-                <CardContent sx={{ pb: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>{book.title}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>{book.author}</Typography>
-                  {book.regalnummer && (
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
-                      {book.regalnummer}
-                    </Typography>
-                  )}
-                  {book.tags && (
-                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", mt: 0.5 }}>
-                      {book.tags.split(',').slice(0, 2).map((t) => (
-                        <Chip key={t} label={t.trim()} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
-                      ))}
-                    </Stack>
-                  )}
-                  <Box sx={{ mt: 1 }}>
-                    <Chip
-                      label={book.availableCopies > 0 ? `Verfügbar (${book.availableCopies}/${book.totalCopies})` : 'Nicht verfügbar'}
-                      color={book.availableCopies > 0 ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+            <BookCard book={book} isLoggedIn={isLoggedIn} isAdmin={isAdmin} />
           </Grid>
         ))}
       </Grid>

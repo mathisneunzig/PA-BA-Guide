@@ -14,6 +14,7 @@ import ThemengebietPicker from '@/app/components/ThemengebietPicker'
 import ProgrammiersprachePicker from '@/app/components/ProgrammiersprachePicker'
 import HauptkategoriePicker from '@/app/components/HauptkategoriePicker'
 import CoverUpload from '@/app/components/CoverUpload'
+import QuickPrintDialog from '@/app/components/QuickPrintDialog'
 
 export default function NewBookPage() {
   const router = useRouter()
@@ -27,6 +28,7 @@ export default function NewBookPage() {
   const [loading, setLoading] = useState(false)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [error, setError] = useState('')
+  const [createdBarcode, setCreatedBarcode] = useState<string | null>(null)
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -102,7 +104,7 @@ export default function NewBookPage() {
       })
       const data = await res.json()
       if (!res.ok) setError(data.error ?? 'Fehler beim Erstellen')
-      else router.push('/admin/books')
+      else setCreatedBarcode(data.id)
     } finally {
       setLoading(false)
     }
@@ -231,6 +233,15 @@ export default function NewBookPage() {
           {loading ? 'Erstelle…' : 'Buch erstellen'}
         </Button>
       </Box>
+
+      {createdBarcode && (
+        <QuickPrintDialog
+          barcode={createdBarcode}
+          modes={form.regalnummer ? ['label', 'shelf'] : ['label']}
+          title={form.title}
+          onClose={() => router.push('/admin/books')}
+        />
+      )}
     </Container>
   )
 }

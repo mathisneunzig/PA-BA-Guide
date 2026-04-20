@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
+import { CartProvider } from '@/lib/cart/CartContext'
 
 type ColorMode = 'light' | 'dark'
 
@@ -174,9 +175,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
-            {children}
-          </div>
+          <CartProvider>
+            <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
+              {children}
+            </div>
+          </CartProvider>
         </ThemeProvider>
       </SessionProvider>
     </ColorModeContext.Provider>

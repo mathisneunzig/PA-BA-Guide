@@ -1,20 +1,21 @@
 'use client'
 
 import {
-  Avatar, Box, Divider, Drawer, IconButton, List, ListItem,
+  Avatar, Badge, Box, Divider, Drawer, IconButton, List, ListItem,
   ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem,
   Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import PersonIcon from '@mui/icons-material/Person'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ManageSearchIcon from '@mui/icons-material/ManageSearch'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd'
+import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import GroupIcon from '@mui/icons-material/Group'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
@@ -27,16 +28,17 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useColorMode } from '@/app/providers'
+import { useCart } from '@/lib/cart/CartContext'
 
 const DRAWER_W = 220
 
 const NAV_LINKS = [
   { label: 'Bücher', href: '/books', icon: <MenuBookIcon /> },
 ]
+// Student/user links — no multi-loan, cart instead
 const PROTECTED_LINKS = [
   { label: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Meine Ausleihen', href: '/my-loans', href2: '/my-loans/new', icon: <BookmarkIcon /> },
-  { label: 'Sammelausleihe', href: '/my-loans/multi', icon: <LibraryBooksIcon /> },
+  { label: 'Meine Ausleihen', href: '/my-loans', icon: <BookmarkIcon /> },
   { label: 'Profil', href: '/profile', icon: <PersonIcon /> },
   { label: 'Einstellungen', href: '/settings', icon: <SettingsIcon /> },
 ]
@@ -44,6 +46,7 @@ const ADMIN_LINKS = [
   { label: 'Bücher verwalten', href: '/admin/books', icon: <ManageSearchIcon /> },
   { label: 'Ausleihen verwalten', href: '/admin/loans', icon: <AssignmentIcon /> },
   { label: 'Sammelausleihe', href: '/admin/loans/multi', icon: <LibraryAddIcon /> },
+  { label: 'Sammelreservierung', href: '/admin/loans/reserve', icon: <BookmarkAddIcon /> },
   { label: 'Rückgabe', href: '/admin/return', icon: <AssignmentReturnIcon /> },
   { label: 'Benutzer verwalten', href: '/admin/users', icon: <GroupIcon /> },
 ]
@@ -53,19 +56,19 @@ interface NavItemProps {
   href: string
   icon: React.ReactNode
   active: boolean
+  badge?: number
 }
 
-function NavItem({ label, href, icon, active }: NavItemProps) {
+function NavItem({ label, href, icon, active, badge }: NavItemProps) {
   return (
     <ListItem disablePadding sx={{ display: 'block' }}>
-      <ListItemButton
-        component={Link}
-        href={href}
-        selected={active}
-        sx={{ minHeight: 44, px: 2 }}
-      >
+      <ListItemButton component={Link} href={href} selected={active} sx={{ minHeight: 44, px: 2 }}>
         <ListItemIcon sx={{ minWidth: 0, mr: 1.5, justifyContent: 'center', color: active ? 'primary.main' : 'inherit' }}>
-          {icon}
+          {badge != null && badge > 0 ? (
+            <Badge badgeContent={badge} color="primary" max={9}>
+              {icon}
+            </Badge>
+          ) : icon}
         </ListItemIcon>
         <ListItemText
           primary={label}
@@ -84,9 +87,12 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
   const { mode, toggle: toggleColorMode } = useColorMode()
+  const { items: cartItems } = useCart()
 
   const isAdmin = session?.user?.role === 'ADMIN'
   const isLoggedIn = !!session?.user
+  // Non-admin logged-in users see the cart
+  const showCart = mounted && isLoggedIn && !isAdmin
 
   async function handleSignOut() {
     setAnchorEl(null)
@@ -129,6 +135,16 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
             {PROTECTED_LINKS.map((l) => (
               <NavItem key={l.href} {...l} active={isActive(l.href, (l as { href2?: string }).href2)} />
             ))}
+            {/* Cart — only for non-admins */}
+            {showCart && (
+              <NavItem
+                label="Warenkorb"
+                href="/cart"
+                icon={<ShoppingCartIcon />}
+                active={isActive('/cart')}
+                badge={cartItems.length}
+              />
+            )}
           </>
         )}
 
@@ -166,10 +182,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
         {!mounted ? null : isLoggedIn ? (
           <>
             <Tooltip title={session.user?.name ?? session.user?.email ?? ''} placement="right" arrow>
-              <ListItemButton
-                onClick={(e) => setAnchorEl(e.currentTarget)}
-                sx={{ borderRadius: 1, px: 1.5 }}
-              >
+              <ListItemButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ borderRadius: 1, px: 1.5 }}>
                 <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 13, flexShrink: 0 }}>
                   {session.user?.name?.[0]?.toUpperCase() ?? 'U'}
                 </Avatar>
@@ -232,14 +245,11 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Desktop: permanent drawer */}
       {!isMobile && (
         <Drawer variant="permanent" sx={drawerSx}>
           <DrawerContent />
         </Drawer>
       )}
-
-      {/* Mobile: temporary drawer */}
       {isMobile && (
         <Drawer
           variant="temporary"
@@ -252,9 +262,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         </Drawer>
       )}
 
-      {/* Main content */}
       <Box component="main" sx={{ flex: 1, minWidth: 0, bgcolor: 'background.default' }}>
-        {/* Mobile top bar */}
         {isMobile && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
             <IconButton size="small" onClick={() => setMobileOpen(true)}>

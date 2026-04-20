@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Box, Button, Checkbox, Chip, Container, Dialog, DialogActions,
+  Box, Button, Chip, Container, Dialog, DialogActions,
   DialogContent, DialogContentText, DialogTitle, IconButton,
   Stack, Table, TableBody, TableCell, TableHead, TableRow,
   Tooltip, Typography,
@@ -11,10 +11,10 @@ import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import LabelIcon from '@mui/icons-material/Label'
-import PrintIcon from '@mui/icons-material/Print'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
-import PrintMultiLabels from '@/app/components/PrintMultiLabels'
+import ShelfIcon from '@mui/icons-material/Inventory2'
+import QuickPrintDialog from '@/app/components/QuickPrintDialog'
 import { generateBibtex } from '@/lib/books/bibtex'
 
 interface Book {
@@ -31,11 +31,12 @@ interface Book {
   totalCopies: number
 }
 
+type PrintTarget = { barcode: string; title: string; mode: 'label' | 'shelf' }
+
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [showPrint, setShowPrint] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [printTarget, setPrintTarget] = useState<PrintTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Book | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -45,20 +46,6 @@ export default function AdminBooksPage() {
       .then((r) => r.json())
       .then((d) => setBooks(d.books ?? []))
   }, [])
-
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function toggleAll() {
-    if (selected.size === books.length) setSelected(new Set())
-    else setSelected(new Set(books.map((b) => b.id)))
-  }
 
   async function copyBibtex(book: Book) {
     const bib = generateBibtex(book)
@@ -86,7 +73,6 @@ export default function AdminBooksPage() {
     setDeleting(false)
     if (res.ok) {
       setBooks((prev) => prev.filter((b) => b.id !== deleteTarget.id))
-      setSelected((prev) => { const next = new Set(prev); next.delete(deleteTarget.id); return next })
       setDeleteTarget(null)
     } else {
       const d = await res.json()
@@ -94,67 +80,37 @@ export default function AdminBooksPage() {
     }
   }
 
-  const selectedBarcodes = Array.from(selected)
-  const selectedTitles = Object.fromEntries(
-    books.filter((b) => selected.has(b.id)).map((b) => [b.id, b.title])
-  )
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <MenuBookIcon sx={{ fontSize: 36, color: 'primary.main' }} />
-          <Typography variant="h5">Bücher verwalten</Typography>
+          <Box>
+            <Typography variant="h5">Bücher verwalten</Typography>
+            <Typography variant="body2" color="text.secondary">{books.length} Bücher</Typography>
+          </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {selected.size > 0 && (
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-              onClick={() => setShowPrint(true)}
-              size="small"
-            >
-              {selected.size} Label{selected.size !== 1 ? 's' : ''} drucken
-            </Button>
-          )}
-          <Button href="/admin/books/new" variant="contained" startIcon={<AddIcon />}>
-            Buch hinzufügen
-          </Button>
-        </Box>
+        <Button href="/admin/books/new" variant="contained" startIcon={<AddIcon />}>
+          Buch hinzufügen
+        </Button>
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
         <Table size="small">
           <TableHead>
             <TableRow sx={{ '& th': { fontWeight: 600 } }}>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  size="small"
-                  checked={books.length > 0 && selected.size === books.length}
-                  indeterminate={selected.size > 0 && selected.size < books.length}
-                  onChange={toggleAll}
-                />
-              </TableCell>
               <TableCell sx={{ width: 52 }}>Cover</TableCell>
-              <TableCell>Titel</TableCell>
-              <TableCell>Autor</TableCell>
+              <TableCell>Titel / Autor</TableCell>
               <TableCell>Regal</TableCell>
               <TableCell>Barcode</TableCell>
               <TableCell>Exemplare</TableCell>
               <TableCell>Themengebiete</TableCell>
-              <TableCell align="right">Aktionen</TableCell>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Aktionen</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {books.map((book) => (
-              <TableRow key={book.id} hover selected={selected.has(book.id)}>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    size="small"
-                    checked={selected.has(book.id)}
-                    onChange={() => toggleSelect(book.id)}
-                  />
-                </TableCell>
+              <TableRow key={book.id} hover>
                 <TableCell sx={{ p: 0.5 }}>
                   {book.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -171,9 +127,7 @@ export default function AdminBooksPage() {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>{book.title}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">{book.author}</Typography>
+                  <Typography variant="caption" color="text.secondary">{book.author}</Typography>
                 </TableCell>
                 <TableCell>
                   {book.regalnummer ? (
@@ -206,15 +160,24 @@ export default function AdminBooksPage() {
                     <Typography variant="caption" color="text.disabled">—</Typography>
                   )}
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                   <Tooltip title="Bearbeiten">
                     <IconButton size="small" href={`/admin/books/${book.id}/edit`}>
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Label (PNG)">
-                    <IconButton size="small" component="a" href={`/api/books/${book.id}/label?format=png`} target="_blank">
+                  <Tooltip title="Label drucken">
+                    <IconButton size="small" onClick={() => setPrintTarget({ barcode: book.id, title: book.title, mode: 'label' })}>
                       <LabelIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Schrankplatz drucken">
+                    <IconButton
+                      size="small"
+                      onClick={() => setPrintTarget({ barcode: book.id, title: book.regalnummer ?? book.title, mode: 'shelf' })}
+                      disabled={!book.regalnummer}
+                    >
+                      <ShelfIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title={copied === book.id ? 'Kopiert!' : 'BibTeX kopieren'}>
@@ -236,7 +199,7 @@ export default function AdminBooksPage() {
             ))}
             {books.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                   Noch keine Bücher vorhanden.
                 </TableCell>
               </TableRow>
@@ -245,15 +208,17 @@ export default function AdminBooksPage() {
         </Table>
       </Box>
 
-      {showPrint && (
-        <PrintMultiLabels
-          barcodes={selectedBarcodes}
-          titles={selectedTitles}
-          onClose={() => setShowPrint(false)}
+      {/* Per-book quick print */}
+      {printTarget && (
+        <QuickPrintDialog
+          barcode={printTarget.barcode}
+          mode={printTarget.mode}
+          title={printTarget.title}
+          onClose={() => setPrintTarget(null)}
         />
       )}
 
-      {/* Delete confirmation dialog */}
+      {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Buch löschen?</DialogTitle>
         <DialogContent>
@@ -261,9 +226,7 @@ export default function AdminBooksPage() {
             <strong>{deleteTarget?.title}</strong> wird unwiderruflich gelöscht. Bücher mit aktiven Ausleihen können nicht gelöscht werden.
           </DialogContentText>
           {deleteError && (
-            <DialogContentText color="error" sx={{ mt: 1 }}>
-              {deleteError}
-            </DialogContentText>
+            <DialogContentText color="error" sx={{ mt: 1 }}>{deleteError}</DialogContentText>
           )}
         </DialogContent>
         <DialogActions>

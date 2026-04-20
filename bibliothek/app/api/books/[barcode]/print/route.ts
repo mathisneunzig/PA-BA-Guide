@@ -24,17 +24,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const body = await request.json().catch(() => ({}))
   const printerName: string = body.printerName ?? 'default'
+  const mode: 'label' | 'shelf' = body.mode === 'shelf' ? 'shelf' : 'label'
 
   try {
-    // Dynamic import so the module isn't bundled into client chunks
     const {
       POSPrinter,
       POSDocument,
-      POSText,
       POSTextBuilder,
-      POSBarcode,
       POSBarcodeBuilder,
-      POSLineFeed,
       POSTextAlignment,
       POSPrintStyle,
       POSBarcodeType,
@@ -43,65 +40,49 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const doc = new POSDocument()
 
-    // Header
-    doc.addComponent(
-      new POSTextBuilder('BIBLIOTHEK')
-        .setAlignment(POSTextAlignment.CENTER)
-        .setStyle(POSPrintStyle.BOLD)
-        .build()
-    )
-    doc.addLineFeed()
-    doc.addComponent(new POSTextBuilder('--------------------------------').build())
-    doc.addLineFeed()
-
-    // Title (bold)
-    doc.addComponent(
-      new POSTextBuilder(book.title.slice(0, 64))
-        .setAlignment(POSTextAlignment.LEFT)
-        .setStyle(POSPrintStyle.BOLD)
-        .build()
-    )
-    doc.addLineFeed()
-
-    // Author
-    doc.addComponent(new POSTextBuilder(book.author.slice(0, 48)).build())
-    doc.addLineFeed()
-
-    // Publisher + Year
-    const pubLine = [book.publisher, book.year].filter(Boolean).join(', ')
-    if (pubLine) {
-      doc.addComponent(new POSTextBuilder(pubLine.slice(0, 48)).build())
-      doc.addLineFeed()
-    }
-
-    // ISBN
-    if (book.isbn13) {
-      doc.addComponent(new POSTextBuilder(`ISBN: ${book.isbn13}`).build())
-      doc.addLineFeed()
-    }
-
-    // Tags
-    if (book.tags) {
-      const tagStr = book.tags.split(',').map((t: string) => t.trim()).filter(Boolean).join(' | ')
-      if (tagStr) {
-        doc.addComponent(new POSTextBuilder(tagStr.slice(0, 64)).build())
-        doc.addLineFeed()
+    if (mode === 'shelf') {
+      // Schrankplatz: just the shelf number, large, centred + 2 line feeds
+      const label = book.regalnummer ?? barcode
+      doc.addComponent(
+        new POSTextBuilder(label)
+          .setAlignment(POSTextAlignment.CENTER)
+          .setStyle(POSPrintStyle.BOLD)
+          .build()
+      )
+      doc.addLineFeed(1)
+    } else {
+      // Full book label
+      doc.addComponent(
+        new POSTextBuilder('BIBLIOTHEK')
+          .setAlignment(POSTextAlignment.CENTER)
+          .setStyle(POSPrintStyle.BOLD)
+          .build()
+      )
+      doc.addComponent(new POSTextBuilder('--------------------------------').build())
+      doc.addComponent(
+        new POSTextBuilder(book.title.slice(0, 64))
+          .setAlignment(POSTextAlignment.LEFT)
+          .setStyle(POSPrintStyle.BOLD)
+          .build()
+      )
+      doc.addComponent(new POSTextBuilder(book.author.slice(0, 48)).build())
+      const pubLine = [book.publisher, book.year].filter(Boolean).join(', ')
+      if (pubLine) doc.addComponent(new POSTextBuilder(pubLine.slice(0, 48)).build())
+      if (book.isbn13) doc.addComponent(new POSTextBuilder(`ISBN: ${book.isbn13}`).build())
+      if (book.tags) {
+        const tagStr = book.tags.split(',').map((t: string) => t.trim()).filter(Boolean).join(' | ')
+        if (tagStr) doc.addComponent(new POSTextBuilder(tagStr.slice(0, 64)).build())
       }
+      doc.addComponent(new POSTextBuilder('--------------------------------').build())
+      doc.addComponent(
+        new POSBarcodeBuilder(barcode)
+          .setType(POSBarcodeType.JAN13_EAN13)
+          .setWidth(POSBarcodeWidth.DEFAULT)
+          .build()
+      )
+      doc.addComponent(new POSTextBuilder(barcode).build())
+      doc.addLineFeed(1)
     }
-
-    doc.addComponent(new POSTextBuilder('--------------------------------').build())
-    doc.addLineFeed()
-
-    // EAN-13 Barcode (centered)
-    doc.addComponent(
-      new POSBarcodeBuilder(barcode)
-        .setType(POSBarcodeType.JAN13_EAN13)
-        .setWidth(POSBarcodeWidth.DEFAULT)
-        .build()
-    )
-    doc.addLineFeed()
-    doc.addComponent(new POSTextBuilder(barcode).build())
-    doc.addLineFeed(5)
 
     const printer = new POSPrinter(printerName)
     printer.print(doc)

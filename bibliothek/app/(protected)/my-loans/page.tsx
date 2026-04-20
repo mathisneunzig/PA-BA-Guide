@@ -34,8 +34,8 @@ export default async function MyLoansPage() {
           <BookmarkIcon sx={{ fontSize: 36, color: 'primary.main' }} />
           <Typography variant="h5">Meine Ausleihen</Typography>
         </Box>
-        <Button href="/my-loans/new" variant="contained" startIcon={<AddIcon />}>
-          Buch reservieren
+        <Button href="/books" variant="contained" startIcon={<AddIcon />}>
+          Bücher reservieren
         </Button>
       </Box>
 

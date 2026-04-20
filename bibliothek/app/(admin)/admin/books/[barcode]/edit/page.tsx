@@ -144,7 +144,7 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
             </Typography>
           </Box>
         </Box>
-        {barcode && <PrintLabelButtons barcode={barcode} />}
+        {barcode && <PrintLabelButtons barcode={barcode} title={form.title} hasRegalnummer={!!form.regalnummer} />}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}

@@ -90,8 +90,8 @@ export default async function DashboardPage() {
       </Grid>
 
       <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Button href="/my-loans/new" variant="contained" startIcon={<BookmarkIcon />}>
-          Buch reservieren
+        <Button href="/books" variant="contained" startIcon={<BookmarkIcon />}>
+          Bücher reservieren
         </Button>
       </Box>
     </Container>

@@ -8,10 +8,9 @@ import {
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
-import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import LoginIcon from '@mui/icons-material/Login'
 import BibtexButton from '@/app/components/BibtexButton'
+import CartButton from '@/app/components/CartButton'
 
 type Params = { params: Promise<{ barcode: string }> }
 
@@ -22,18 +21,13 @@ export default async function BookDetailPage({ params }: Params) {
 
   const session = await auth()
   const role = session?.user?.role
-  const canBorrow = role === 'STUDENT' || role === 'ADMIN'
+  const isLoggedIn = !!session?.user
   const isAdmin = role === 'ADMIN'
+  const canUseCart = isLoggedIn && !isAdmin
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Button
-        href="/books"
-        startIcon={<ArrowBackIcon />}
-        sx={{ mb: 3 }}
-        variant="text"
-        color="inherit"
-      >
+      <Button href="/books" startIcon={<ArrowBackIcon />} sx={{ mb: 3 }} variant="text" color="inherit">
         Zurück zum Katalog
       </Button>
 
@@ -49,11 +43,8 @@ export default async function BookDetailPage({ params }: Params) {
                   style={{ width: 130, height: 180, objectFit: 'cover', borderRadius: 4, display: 'block' }}
                 />
               ) : (
-                <Box sx={{
-                  width: 130, height: 180, bgcolor: 'grey.100', borderRadius: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <MenuBookIcon sx={{ fontSize: 56, color: 'grey.400' }} />
+                <Box sx={{ width: 130, height: 180, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MenuBookIcon sx={{ fontSize: 56, color: 'text.disabled' }} />
                 </Box>
               )}
             </Grid>
@@ -81,7 +72,7 @@ export default async function BookDetailPage({ params }: Params) {
                 {book.tags && book.tags.split(',').map((t) => (
                   <Chip key={t} label={t.trim()} size="small" variant="outlined" />
                 ))}
-                {book.language && <Chip label={book.language.toUpperCase()} size="small" variant="outlined" color="default" />}
+                {book.language && <Chip label={book.language.toUpperCase()} size="small" variant="outlined" />}
                 <Chip
                   label={book.availableCopies > 0 ? `Verfügbar (${book.availableCopies}/${book.totalCopies})` : 'Nicht verfügbar'}
                   color={book.availableCopies > 0 ? 'success' : 'default'}
@@ -90,33 +81,19 @@ export default async function BookDetailPage({ params }: Params) {
               </Box>
 
               <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
-                {canBorrow ? (
+                {canUseCart ? (
                   <>
-                    <Button
-                      href={`/my-loans/new?bookId=${book.id}`}
-                      variant="outlined"
-                      startIcon={<BookmarkAddIcon />}
-                      disabled={book.availableCopies === 0}
-                      size="small"
-                    >
-                      Reservieren
+                    <CartButton
+                      book={{ id: book.id, title: book.title, author: book.author, coverUrl: book.coverUrl }}
+                      size="medium"
+                    />
+                    <Button href="/cart" variant="outlined" size="small">
+                      Zum Warenkorb
                     </Button>
-                    {isAdmin && (
-                      <Button
-                        href={`/my-loans/new?bookId=${book.id}`}
-                        variant="contained"
-                        color="success"
-                        startIcon={<CheckCircleIcon />}
-                        disabled={book.availableCopies === 0}
-                        size="small"
-                      >
-                        Direkt ausleihen
-                      </Button>
-                    )}
                   </>
-                ) : !session ? (
+                ) : !isLoggedIn ? (
                   <Button href="/login" variant="outlined" startIcon={<LoginIcon />}>
-                    Anmelden zum Ausleihen
+                    Anmelden zum Reservieren
                   </Button>
                 ) : null}
               </Stack>
