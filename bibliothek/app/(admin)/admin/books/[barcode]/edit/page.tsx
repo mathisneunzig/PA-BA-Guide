@@ -9,9 +9,9 @@ import {
 import SaveIcon from '@mui/icons-material/Save'
 import EditIcon from '@mui/icons-material/Edit'
 import Link from 'next/link'
-import ThemengebietPicker from '@/app/components/ThemengebietPicker'
-import ProgrammiersprachePicker from '@/app/components/ProgrammiersprachePicker'
-import HauptkategoriePicker from '@/app/components/HauptkategoriePicker'
+import ThemengebietPicker from '@/app/components/TopicPicker'
+import ProgrammiersprachePicker from '@/app/components/LanguagePicker'
+import HauptkategoriePicker from '@/app/components/CategoryPicker'
 import CoverUpload from '@/app/components/CoverUpload'
 import PrintLabelButtons from '@/app/components/PrintLabelButtons'
 

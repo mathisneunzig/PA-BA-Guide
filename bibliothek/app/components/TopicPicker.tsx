@@ -18,8 +18,6 @@ export const THEMENGEBIETE = [
   'Projektmanagement',
   'Testing',
   'Usability',
-  'Barrierefreiheit',
-  'Open Source',
   'Zertifizierungen',
   'Requirements Engineering',
 ]

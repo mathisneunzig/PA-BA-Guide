@@ -8,9 +8,9 @@ import {
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import type { SelectChangeEvent } from '@mui/material'
-import { THEMENGEBIETE } from '@/app/components/ThemengebietPicker'
-import { PROGRAMMIERSPRACHEN } from '@/app/components/ProgrammiersprachePicker'
-import { HAUPTKATEGORIEN } from '@/app/components/HauptkategoriePicker'
+import { THEMENGEBIETE } from '@/app/components/TopicPicker'
+import { PROGRAMMIERSPRACHEN } from '@/app/components/LanguagePicker'
+import { HAUPTKATEGORIEN } from '@/app/components/CategoryPicker'
 
 interface Props {
   initialQ: string

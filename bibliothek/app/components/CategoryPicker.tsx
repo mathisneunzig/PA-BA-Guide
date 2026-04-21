@@ -7,13 +7,15 @@ import type { SelectChangeEvent } from '@mui/material'
 
 export const HAUPTKATEGORIEN = [
   { label: 'Informatik Allgemein', code: 'INF' },
-  { label: 'Mathe', code: 'MAT' },
+  { label: 'Mathe', code: 'MA' },
   { label: 'Softwarearchitekturen', code: 'SWA' },
   { label: 'KI', code: 'KI' },
   { label: 'SAP', code: 'SAP' },
   { label: 'Software Engineering', code: 'SWE' },
-  { label: 'Schulbuch', code: 'SCH' },
+  { label: 'Schulbuch', code: 'SB' },
   { label: 'Magazin', code: 'MAG' },
+  { label: 'Datenbanken', code: 'DB' },
+  { label: 'Sonstiges', code: 'XX' },
 ]
 
 interface Props {
