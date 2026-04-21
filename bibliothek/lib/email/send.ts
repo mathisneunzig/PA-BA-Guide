@@ -2,20 +2,29 @@ import 'server-only'
 import nodemailer from 'nodemailer'
 import { renderTemplate } from './render-template'
 
+let _transport: ReturnType<typeof nodemailer.createTransport> | null = null
+
 function getTransport() {
+  if (_transport) return _transport
   const required = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']
   for (const key of required) {
     if (!process.env[key]) throw new Error(`Missing environment variable: ${key}`)
   }
-  return nodemailer.createTransport({
+  _transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true', // true for port 465, false for 587
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    pool: true,
+    maxConnections: 3,
+    socketTimeout: 10000,
+    greetingTimeout: 10000,
+    connectionTimeout: 10000,
   })
+  return _transport
 }
 
 const FROM = () => process.env.EMAIL_FROM ?? process.env.SMTP_USER!
@@ -100,7 +109,7 @@ export async function sendBookAvailableEmail({
   })
 }
 
-export type BroadcastTemplate = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general'
+export type BroadcastTemplate = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general' | 'broadcast-changelog' | 'broadcast-newbooks'
 
 export async function sendBroadcastEmail({
   to,
@@ -121,7 +130,13 @@ export async function sendBroadcastEmail({
     from: FROM(),
     to,
     subject,
-    html: renderTemplate(template, { subject, message, timeFrom, timeTo }),
+    html: renderTemplate(template, {
+      subject,
+      message,
+      timeFrom,
+      timeTo,
+      catalogUrl: `${APP_URL()}/books`,
+    }),
   })
 }
 

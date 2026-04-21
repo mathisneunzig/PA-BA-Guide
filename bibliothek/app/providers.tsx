@@ -1,9 +1,10 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, Suspense } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
 import { CartProvider } from '@/lib/cart/CartContext'
+import NavigationProgress from '@/app/components/NavigationProgress'
 
 type ColorMode = 'light' | 'dark'
 
@@ -149,36 +150,44 @@ function buildTheme(mode: ColorMode) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<ColorMode>('light')
-  const [mounted, setMounted] = useState(false)
+  // Read initial color mode from the data attribute set by the inline script in layout.tsx.
+  // This avoids the visibility:hidden flash while still preventing light/dark flicker.
+  const [mode, setMode] = useState<ColorMode>(() => {
+    if (typeof document !== 'undefined') {
+      const dm = document.documentElement.dataset.colorMode as ColorMode | undefined
+      if (dm === 'dark' || dm === 'light') return dm
+    }
+    return 'light'
+  })
 
   useEffect(() => {
+    // Sync in case the script ran after useState initializer (SSR hydration)
     const stored = localStorage.getItem('colorMode') as ColorMode | null
     const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
     setMode(stored ?? preferred)
-    setMounted(true)
   }, [])
 
   function toggle() {
     setMode((prev) => {
       const next = prev === 'light' ? 'dark' : 'light'
       localStorage.setItem('colorMode', next)
+      document.documentElement.dataset.colorMode = next
       return next
     })
   }
 
   const theme = useMemo(() => buildTheme(mode), [mode])
 
-  // Prevent flash: render children invisible until mode is known
   return (
     <ColorModeContext.Provider value={{ mode, toggle }}>
       <SessionProvider>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <CartProvider>
-            <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
-              {children}
-            </div>
+            <Suspense>
+              <NavigationProgress />
+            </Suspense>
+            {children}
           </CartProvider>
         </ThemeProvider>
       </SessionProvider>

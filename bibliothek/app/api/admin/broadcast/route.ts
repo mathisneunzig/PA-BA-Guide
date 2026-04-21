@@ -8,6 +8,8 @@ const VALID_TEMPLATES: BroadcastTemplate[] = [
   'broadcast-maintenance',
   'broadcast-event',
   'broadcast-general',
+  'broadcast-changelog',
+  'broadcast-newbooks',
 ]
 
 /**

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Box, Button, Chip, Container, Dialog, DialogActions,
+  Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions,
   DialogContent, DialogContentText, DialogTitle, IconButton,
   Stack, Table, TableBody, TableCell, TableHead, TableRow,
   Tooltip, Typography,
@@ -35,6 +35,7 @@ type PrintTarget = { barcode: string; title: string; mode: 'label' | 'shelf' }
 
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
+  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
   const [printTarget, setPrintTarget] = useState<PrintTarget | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Book | null>(null)
@@ -45,6 +46,7 @@ export default function AdminBooksPage() {
     fetch('/api/books?limit=500')
       .then((r) => r.json())
       .then((d) => setBooks(d.books ?? []))
+      .finally(() => setLoading(false))
   }, [])
 
   async function copyBibtex(book: Book) {
@@ -96,6 +98,11 @@ export default function AdminBooksPage() {
       </Box>
 
       <Box sx={{ overflowX: 'auto' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
         <Table size="small">
           <TableHead>
             <TableRow sx={{ '& th': { fontWeight: 600 } }}>
@@ -206,6 +213,7 @@ export default function AdminBooksPage() {
             )}
           </TableBody>
         </Table>
+        )}
       </Box>
 
       {/* Per-book quick print */}

@@ -10,10 +10,12 @@ import NewspaperIcon from '@mui/icons-material/Newspaper'
 import BuildIcon from '@mui/icons-material/Build'
 import CelebrationIcon from '@mui/icons-material/Celebration'
 import AnnouncementIcon from '@mui/icons-material/Announcement'
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
+import AutoStoriesIcon from '@mui/icons-material/AutoStories'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 
-type TemplateId = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general'
+type TemplateId = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general' | 'broadcast-changelog' | 'broadcast-newbooks'
 
 interface Template {
   id: TemplateId
@@ -65,6 +67,26 @@ const TEMPLATES: Template[] = [
     bgColor: '#f3e5f5',
     icon: <AnnouncementIcon />,
     eyebrow: '📢 Mitteilung',
+    showTime: true,
+  },
+  {
+    id: 'broadcast-changelog',
+    label: 'Software-Update',
+    description: 'Neue Funktionen und Änderungen in der App',
+    color: '#00695c',
+    bgColor: '#e0f2f1',
+    icon: <RocketLaunchIcon />,
+    eyebrow: '🚀 Software-Update',
+    showTime: false,
+  },
+  {
+    id: 'broadcast-newbooks',
+    label: 'Neue Bücher',
+    description: 'Neue Bücher im Bestand bewerben',
+    color: '#6a1b9a',
+    bgColor: '#f3e5f5',
+    icon: <AutoStoriesIcon />,
+    eyebrow: '📖 Neue Bücher',
     showTime: true,
   },
 ]
