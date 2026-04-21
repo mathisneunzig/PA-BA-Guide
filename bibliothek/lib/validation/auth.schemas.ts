@@ -69,6 +69,7 @@ export const UpdateUserSchema = z.object({
   del_zipcode: z.string().optional(),
   del_city: z.string().optional(),
   del_country: z.string().optional(),
+  role: z.enum(['GUEST', 'STUDENT', 'ADMIN']).optional(),
 })
 
 export const ProfileCompleteSchema = z.object({

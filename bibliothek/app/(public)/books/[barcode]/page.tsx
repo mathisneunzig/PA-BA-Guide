@@ -23,7 +23,7 @@ export default async function BookDetailPage({ params }: Params) {
   const role = session?.user?.role
   const isLoggedIn = !!session?.user
   const isAdmin = role === 'ADMIN'
-  const canUseCart = isLoggedIn && !isAdmin
+  const canUseCart = isLoggedIn
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -87,9 +87,6 @@ export default async function BookDetailPage({ params }: Params) {
                       book={{ id: book.id, title: book.title, author: book.author, coverUrl: book.coverUrl }}
                       size="medium"
                     />
-                    <Button href="/cart" variant="outlined" size="small">
-                      Zum Warenkorb
-                    </Button>
                   </>
                 ) : !isLoggedIn ? (
                   <Button href="/login" variant="outlined" startIcon={<LoginIcon />}>

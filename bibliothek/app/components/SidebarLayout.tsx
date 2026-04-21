@@ -93,8 +93,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
 
   const isAdmin = session?.user?.role === 'ADMIN'
   const isLoggedIn = !!session?.user
-  // Non-admin logged-in users see the cart
-  const showCart = mounted && isLoggedIn && !isAdmin
+  const showCart = mounted && isLoggedIn
 
   async function handleSignOut() {
     setAnchorEl(null)
@@ -137,7 +136,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
             {PROTECTED_LINKS.map((l) => (
               <NavItem key={l.href} {...l} active={isActive(l.href, (l as { href2?: string }).href2)} />
             ))}
-            {/* Cart — only for non-admins */}
+            {/* Cart — for all logged-in users */}
             {showCart && (
               <NavItem
                 label="Warenkorb"

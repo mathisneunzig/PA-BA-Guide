@@ -4,7 +4,7 @@ import { verifySession } from '@/lib/auth/dal'
 import { computeDueDate } from '@/lib/loans/loan-service'
 import { countOverlappingLoans } from '@/lib/loans/availability'
 import { CreateLoanSchema } from '@/lib/validation/loan.schemas'
-import { sendReservationConfirmationEmail, sendLoanReceiptEmail } from '@/lib/email/send'
+import { sendReservationConfirmationEmail, sendLoanReceiptEmail, sendNewReservationEmail } from '@/lib/email/send'
 import { releaseHold } from '@/lib/cart/holds'
 import { LoanStatus } from '@prisma/client'
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
-    select: { totalCopies: true, title: true, author: true },
+    select: { totalCopies: true, title: true, author: true, regalnummer: true },
   })
   if (!book) return NextResponse.json({ error: 'Book not found' }, { status: 404 })
 
@@ -81,11 +81,13 @@ export async function POST(request: NextRequest) {
   // Release the cart hold for this book (replaced by the real loan)
   releaseHold(session.user.id, bookId).catch(() => {})
 
-  // Send confirmation email (non-blocking)
+  // Fetch user info once for all emails
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { email: true },
+    select: { email: true, username: true, firstname: true, lastname: true },
   })
+
+  // Send confirmation email to the user (non-blocking)
   if (user?.email) {
     if (immediate) {
       sendLoanReceiptEmail({
@@ -103,6 +105,33 @@ export async function POST(request: NextRequest) {
         loanId: loan.id,
       }).catch(() => {})
     }
+  }
+
+  // Notify all admins about new RESERVED loans (non-blocking)
+  if (!immediate) {
+    prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { email: true },
+    }).then((admins) => {
+      const userName = [user?.firstname, user?.lastname].filter(Boolean).join(' ') || user?.username || 'Unbekannt'
+      const userEmail = user?.email ?? ''
+      for (const admin of admins) {
+        if (!admin.email) continue
+        sendNewReservationEmail({
+          to: admin.email,
+          loanId: loan.id,
+          bookTitle: book.title,
+          bookAuthor: book.author,
+          regalnummer: book.regalnummer ?? undefined,
+          userName,
+          userEmail,
+          startDate,
+          dueDate,
+          handoverMethod: parsed.data.handoverMethod ?? null,
+          notes: parsed.data.notes ?? null,
+        }).catch(() => {})
+      }
+    }).catch(() => {})
   }
 
   return NextResponse.json(loan, { status: 201 })

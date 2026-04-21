@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { RegisterSchema } from '@/lib/validation/auth.schemas'
 import { hashPassword } from '@/lib/utils/hash'
 import { generateToken } from '@/lib/utils/token'
-import { sendVerificationEmail } from '@/lib/email/send'
+import { sendVerificationEmail, sendNewGuestEmail } from '@/lib/email/send'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,10 +47,31 @@ export async function POST(request: NextRequest) {
         email_verify_expires: verifyExpires,
         email_verified: false,
       },
-      select: { id: true, email: true, username: true },
+      select: { id: true, email: true, username: true, firstname: true, lastname: true, phone: true, createdAt: true },
     })
 
+    // Send verification email to new user
     await sendVerificationEmail({ to: email, token: verifyToken })
+
+    // Notify all admins (non-blocking)
+    prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { email: true },
+    }).then((admins) => {
+      for (const admin of admins) {
+        if (!admin.email) continue
+        sendNewGuestEmail({
+          to: admin.email,
+          userId: user.id,
+          firstname: user.firstname ?? firstname,
+          lastname: user.lastname ?? lastname,
+          username: user.username,
+          email: user.email,
+          phone: user.phone,
+          registeredAt: user.createdAt,
+        }).catch(() => {})
+      }
+    }).catch(() => {})
 
     return Response.json(
       {

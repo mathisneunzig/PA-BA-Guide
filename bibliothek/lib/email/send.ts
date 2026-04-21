@@ -161,3 +161,87 @@ export async function sendLoanReceiptEmail({
     }),
   })
 }
+
+export async function sendNewReservationEmail({
+  to,
+  loanId,
+  bookTitle,
+  bookAuthor,
+  regalnummer,
+  userName,
+  userEmail,
+  startDate,
+  dueDate,
+  handoverMethod,
+  notes,
+}: {
+  to: string
+  loanId: string
+  bookTitle: string
+  bookAuthor: string
+  regalnummer?: string | null
+  userName: string
+  userEmail: string
+  startDate: Date
+  dueDate: Date
+  handoverMethod?: string | null
+  notes?: string | null
+}) {
+  const HANDOVER_LABEL: Record<string, string> = {
+    PICKUP: 'Abholung',
+    MEETINGPOINT: 'Treffpunkt',
+    SHIPPING: 'Versand',
+    DROPOFF: 'Vorbeibringen',
+  }
+  return getTransport().sendMail({
+    from: FROM(),
+    to,
+    subject: `Neue Reservierung: „${bookTitle}" von ${userName}`,
+    html: renderTemplate('new-reservation', {
+      bookTitle,
+      bookAuthor,
+      regalnummer: regalnummer ?? null,
+      userName,
+      userEmail,
+      startDate: startDate.toLocaleDateString('de-DE'),
+      dueDate: dueDate.toLocaleDateString('de-DE'),
+      handoverMethod: handoverMethod ? (HANDOVER_LABEL[handoverMethod] ?? handoverMethod) : null,
+      notes: notes ?? null,
+      activateUrl: `${APP_URL()}/admin/loans?status=RESERVED`,
+    }),
+  })
+}
+  to,
+  userId,
+  firstname,
+  lastname,
+  username,
+  email,
+  phone,
+  registeredAt,
+}: {
+  to: string
+  userId: string
+  firstname: string
+  lastname: string
+  username: string
+  email: string
+  phone?: string | null
+  registeredAt: Date
+}) {
+  return getTransport().sendMail({
+    from: FROM(),
+    to,
+    subject: `Neue Registrierung: ${firstname} ${lastname} (@${username})`,
+    html: renderTemplate('new-guest-registration', {
+      firstname,
+      lastname,
+      username,
+      email,
+      phone: phone ?? null,
+      registeredAt: registeredAt.toLocaleString('de-DE'),
+      approveUrl: `${APP_URL()}/admin/users/${userId}/approve`,
+      usersUrl: `${APP_URL()}/admin/users`,
+    }),
+  })
+}

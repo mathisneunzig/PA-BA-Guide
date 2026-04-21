@@ -58,8 +58,8 @@ export default function BookCard({ book, isLoggedIn, isAdmin }: Props) {
         </CardContent>
       </CardActionArea>
 
-      {/* Cart button — shown for logged-in non-admin users */}
-      {isLoggedIn && !isAdmin && (
+      {/* Cart button — shown for all logged-in users */}
+      {isLoggedIn && (
         <Box sx={{ position: 'absolute', top: 6, right: 6 }}>
           <CartButton
             book={{ id: book.id, title: book.title, author: book.author, coverUrl: book.coverUrl }}

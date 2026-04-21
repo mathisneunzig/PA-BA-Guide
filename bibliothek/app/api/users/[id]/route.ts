@@ -70,6 +70,11 @@ export async function PUT(
     )
   }
 
+  // Only admins may change roles
+  if (parsed.data.role && session.user.role !== 'ADMIN') {
+    return Response.json({ error: 'Only admins can change roles' }, { status: 403 })
+  }
+
   // Check username uniqueness if changing
   if (parsed.data.username) {
     const existing = await prisma.user.findFirst({
