@@ -4,8 +4,9 @@ import {
   Box, Container, Grid, Typography,
 } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
-import BooksFilter from '@/app/components/BooksFilter'
+import BooksFilter, { type SortValue } from '@/app/components/BooksFilter'
 import BookCard from '@/app/components/BookCard'
+import PaginationBar from '@/app/components/PaginationBar'
 import { Suspense } from 'react'
 
 interface SearchParams {
@@ -13,8 +14,21 @@ interface SearchParams {
   tags?: string
   programmiersprachen?: string
   hauptkategorie?: string
-  language?: string
+  sort?: string
   page?: string
+}
+
+const VALID_SORTS: SortValue[] = ['title_asc', 'title_desc', 'author_asc', 'year_desc', 'year_asc', 'hauptkategorie_asc']
+
+function buildOrderBy(sort: SortValue) {
+  switch (sort) {
+    case 'title_desc': return { title: 'desc' as const }
+    case 'author_asc': return { author: 'asc' as const }
+    case 'year_desc': return { year: 'desc' as const }
+    case 'year_asc': return { year: 'asc' as const }
+    case 'hauptkategorie_asc': return { hauptkategorie: 'asc' as const }
+    default: return { title: 'asc' as const }
+  }
 }
 
 export default async function BooksPage({
@@ -27,8 +41,9 @@ export default async function BooksPage({
   const tagsParam = sp.tags ?? ''
   const programmiersprachenParam = sp.programmiersprachen ?? ''
   const hauptkategorieParam = sp.hauptkategorie ?? ''
+  const sort: SortValue = VALID_SORTS.includes(sp.sort as SortValue) ? (sp.sort as SortValue) : 'title_asc'
   const page = Math.max(1, parseInt(sp.page ?? '1', 10))
-  const limit = 20
+  const limit = 21
   const skip = (page - 1) * limit
 
   const tagList = tagsParam ? tagsParam.split(',').filter(Boolean) : []
@@ -52,13 +67,21 @@ export default async function BooksPage({
   }
 
   const [books, total] = await Promise.all([
-    prisma.book.findMany({ where, skip, take: limit, orderBy: { title: 'asc' } }),
+    prisma.book.findMany({ where, skip, take: limit, orderBy: buildOrderBy(sort) }),
     prisma.book.count({ where }),
   ])
 
   const pages = Math.ceil(total / limit)
   const isLoggedIn = !!session?.user
   const isAdmin = session?.user?.role === 'ADMIN'
+
+  // Build base params for pagination links (without page)
+  const baseParams = new URLSearchParams()
+  if (q) baseParams.set('q', q)
+  if (tagsParam) baseParams.set('tags', tagsParam)
+  if (programmiersprachenParam) baseParams.set('programmiersprachen', programmiersprachenParam)
+  if (hauptkategorieParam) baseParams.set('hauptkategorie', hauptkategorieParam)
+  if (sort !== 'title_asc') baseParams.set('sort', sort)
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -68,12 +91,7 @@ export default async function BooksPage({
       </Box>
 
       <Suspense>
-        <BooksFilter
-          initialQ={q}
-          initialTags={tagList}
-          initialProgrammiersprachen={langList}
-          initialHauptkategorie={hauptkategorieParam}
-        />
+        <BooksFilter />
       </Suspense>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -96,21 +114,9 @@ export default async function BooksPage({
       )}
 
       {pages > 1 && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center', mt: 4 }}>
-          {page > 1 && (
-            <Box component="a" href={`?q=${q}&tags=${tagsParam}&programmiersprachen=${programmiersprachenParam}&hauptkategorie=${hauptkategorieParam}&page=${page - 1}`} sx={{ textDecoration: 'none' }}>
-              ← Zurück
-            </Box>
-          )}
-          <Typography variant="body2" color="text.secondary">
-            Seite {page} von {pages}
-          </Typography>
-          {page < pages && (
-            <Box component="a" href={`?q=${q}&tags=${tagsParam}&programmiersprachen=${programmiersprachenParam}&hauptkategorie=${hauptkategorieParam}&page=${page + 1}`} sx={{ textDecoration: 'none' }}>
-              Weiter →
-            </Box>
-          )}
-        </Box>
+        <Suspense>
+          <PaginationBar page={page} pages={pages} baseParams={baseParams.toString()} />
+        </Suspense>
       )}
     </Container>
   )

@@ -103,7 +103,16 @@ export default function NewBookPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.error ?? 'Fehler beim Erstellen')
+      if (!res.ok) {
+        const err = data.error
+        if (err && typeof err === 'object') {
+          const fieldMsgs = Object.entries(err.fieldErrors ?? {})
+            .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
+          setError([...(err.formErrors ?? []), ...fieldMsgs].join(' | ') || 'Fehler beim Erstellen')
+        } else {
+          setError(err ?? 'Fehler beim Erstellen')
+        }
+      }
       else setCreatedBarcode(data.id)
     } finally {
       setLoading(false)
