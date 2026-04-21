@@ -5,6 +5,7 @@ import { computeDueDate } from '@/lib/loans/loan-service'
 import { countOverlappingLoans } from '@/lib/loans/availability'
 import { CreateLoanSchema } from '@/lib/validation/loan.schemas'
 import { sendReservationConfirmationEmail, sendLoanReceiptEmail } from '@/lib/email/send'
+import { releaseHold } from '@/lib/cart/holds'
 import { LoanStatus } from '@prisma/client'
 
 /** GET /api/loans — own loans only */
@@ -49,9 +50,9 @@ export async function POST(request: NextRequest) {
   })
   if (!book) return NextResponse.json({ error: 'Book not found' }, { status: 404 })
 
-  const overlapping = await countOverlappingLoans(bookId, startDate, dueDate)
+  const overlapping = await countOverlappingLoans(bookId, startDate, dueDate, session.user.id)
   if (overlapping >= book.totalCopies) {
-    return NextResponse.json({ error: 'No copies available for the requested period' }, { status: 409 })
+    return NextResponse.json({ error: 'Keine Exemplare für den gewünschten Zeitraum verfügbar' }, { status: 409 })
   }
 
   const loan = await prisma.$transaction(async (tx) => {
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
     })
     return created
   })
+
+  // Release the cart hold for this book (replaced by the real loan)
+  releaseHold(session.user.id, bookId).catch(() => {})
 
   // Send confirmation email (non-blocking)
   const user = await prisma.user.findUnique({

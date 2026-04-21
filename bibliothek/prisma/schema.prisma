@@ -50,7 +50,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  loans Loan[]
+  loans     Loan[]
+  cartHolds CartHold[]
 
   @@map("users")
 }
@@ -91,9 +92,27 @@ model Book {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  loans Loan[]
+  loans     Loan[]
+  cartHolds CartHold[]
 
   @@map("books")
+}
+
+/// Temporary hold placed when a user adds a book to their cart.
+/// Expires after 10 minutes; cleaned up on checkout or explicit removal.
+model CartHold {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+  @@index([expiresAt])
+  @@map("cart_holds")
 }
 
 model Loan {

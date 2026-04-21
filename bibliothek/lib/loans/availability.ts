@@ -32,19 +32,32 @@ export async function getEarliestAvailableDate(bookId: string): Promise<Date> {
 
 /**
  * Count how many ACTIVE or RESERVED loans overlap with [startDate, endDate].
- * Used to check whether creating a new reservation would exceed totalCopies.
+ * Also counts active CartHolds from other users (not the requesting user),
+ * so that cart reservations block concurrent reservations.
  */
 export async function countOverlappingLoans(
   bookId: string,
   startDate: Date,
   endDate: Date,
+  excludeHoldsForUserId?: string,
 ): Promise<number> {
-  return prisma.loan.count({
-    where: {
-      bookId,
-      status: { in: [LoanStatus.ACTIVE, LoanStatus.RESERVED] },
-      startDate: { lte: endDate },
-      dueDate: { gte: startDate },
-    },
-  })
+  const [loanCount, holdCount] = await Promise.all([
+    prisma.loan.count({
+      where: {
+        bookId,
+        status: { in: [LoanStatus.ACTIVE, LoanStatus.RESERVED] },
+        startDate: { lte: endDate },
+        dueDate: { gte: startDate },
+      },
+    }),
+    prisma.cartHold.count({
+      where: {
+        bookId,
+        expiresAt: { gt: new Date() },
+        ...(excludeHoldsForUserId ? { userId: { not: excludeHoldsForUserId } } : {}),
+      },
+    }),
+  ])
+  return loanCount + holdCount
 }
+

@@ -18,6 +18,7 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import Link from 'next/link'
 import { useCart } from '@/lib/cart/CartContext'
+import CartTimer from '@/app/components/CartTimer'
 
 type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING' | 'DROPOFF'
 
@@ -85,6 +86,7 @@ export default function CartPage() {
     if (errors.length > 0) {
       setSubmitError(errors.join(' | '))
     } else {
+      // Holds are released server-side per loan; clear cart client-side
       clear()
       setDone(true)
       setTimeout(() => router.push('/my-loans'), 1500)
@@ -123,6 +125,9 @@ export default function CartPage() {
         </Card>
       ) : (
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Hold timer */}
+          <CartTimer />
+
           {submitError && <Alert severity="error">{submitError}</Alert>}
 
           {/* Book list */}
