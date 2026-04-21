@@ -1,8 +1,9 @@
 import 'server-only'
 import nodemailer from 'nodemailer'
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { renderTemplate } from './render-template'
 
-let _transport: ReturnType<typeof nodemailer.createTransport> | null = null
+let _transport: nodemailer.Transporter<SMTPTransport.SentMessageInfo> | null = null
 
 function getTransport() {
   if (_transport) return _transport
@@ -10,7 +11,7 @@ function getTransport() {
   for (const key of required) {
     if (!process.env[key]) throw new Error(`Missing environment variable: ${key}`)
   }
-  _transport = nodemailer.createTransport({
+  _transport = nodemailer.createTransport<SMTPTransport.SentMessageInfo>({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
     secure: process.env.SMTP_SECURE === 'true',
@@ -18,12 +19,10 @@ function getTransport() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    pool: true,
-    maxConnections: 3,
     socketTimeout: 10000,
     greetingTimeout: 10000,
     connectionTimeout: 10000,
-  })
+  } as SMTPTransport.Options)
   return _transport
 }
 
