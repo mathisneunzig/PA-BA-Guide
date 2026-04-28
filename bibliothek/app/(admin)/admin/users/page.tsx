@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box, Chip, CircularProgress, Container, IconButton,
   Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography,
@@ -24,6 +25,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [promoting, setPromoting] = useState<string | null>(null)
@@ -58,11 +60,11 @@ export default function AdminUsersPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <PeopleIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Nutzerverwaltung</Typography>
+          <Typography variant="h5">{t('admin.users.title')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {users.length} Nutzer gesamt
+            {t('admin.users.total', { count: users.length })}
             {guestCount > 0 && (
-              <Chip label={`${guestCount} ausstehend`} color="warning" size="small" />
+              <Chip label={t('admin.users.pending', { count: guestCount })} color="warning" size="small" />
             )}
           </Typography>
         </Box>
@@ -77,13 +79,13 @@ export default function AdminUsersPage() {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 600 } }}>
-                <TableCell>Name</TableCell>
-                <TableCell>Benutzername</TableCell>
-                <TableCell>E-Mail</TableCell>
-                <TableCell>Rolle</TableCell>
-                <TableCell>Verifiziert</TableCell>
-                <TableCell>Registriert</TableCell>
-                <TableCell align="right">Aktionen</TableCell>
+                <TableCell>{t('admin.users.colName')}</TableCell>
+                <TableCell>{t('admin.users.colUsername')}</TableCell>
+                <TableCell>{t('admin.users.colEmail')}</TableCell>
+                <TableCell>{t('admin.users.colRole')}</TableCell>
+                <TableCell>{t('admin.users.colVerified')}</TableCell>
+                <TableCell>{t('admin.users.colRegistered')}</TableCell>
+                <TableCell align="right">{t('admin.users.colActions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -118,12 +120,12 @@ export default function AdminUsersPage() {
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(user.createdAt).toLocaleDateString('de-DE')}
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </Typography>
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     {user.role === 'GUEST' && (
-                      <Tooltip title="Schnell als Student freischalten">
+                      <Tooltip title={t('admin.users.approveTooltip')}>
                         <IconButton
                           size="small"
                           color="success"
@@ -136,7 +138,7 @@ export default function AdminUsersPage() {
                         </IconButton>
                       </Tooltip>
                     )}
-                    <Tooltip title="Details prüfen">
+                    <Tooltip title={t('admin.users.detailsTooltip')}>
                       <IconButton
                         size="small"
                         component={Link}
@@ -151,7 +153,7 @@ export default function AdminUsersPage() {
               {users.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                    Keine Nutzer gefunden.
+                    {t('admin.users.empty')}
                   </TableCell>
                 </TableRow>
               )}

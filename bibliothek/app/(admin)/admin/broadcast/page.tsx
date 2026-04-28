@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardActionArea, CardContent, CircularProgress,
   Container, Dialog, DialogContent, DialogTitle, Divider, IconButton,
-  LinearProgress, TextField, Tooltip, Typography,
+  LinearProgress, Tab, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send'
 import PreviewIcon from '@mui/icons-material/Visibility'
@@ -20,6 +21,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 
 type TemplateId = 'broadcast-news' | 'broadcast-maintenance' | 'broadcast-event' | 'broadcast-general' | 'broadcast-changelog' | 'broadcast-newbooks'
+
+const BROADCAST_LOCALES = ['de', 'en', 'fr', 'es'] as const
+type BroadcastLocale = typeof BROADCAST_LOCALES[number]
 
 interface Template {
   id: TemplateId
@@ -96,9 +100,11 @@ const TEMPLATES: Template[] = [
 ]
 
 export default function BroadcastPage() {
+  const { t } = useTranslation()
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('broadcast-news')
-  const [subject, setSubject] = useState('')
-  const [message, setMessage] = useState('')
+  const [subjects, setSubjects] = useState<Record<BroadcastLocale, string>>({ de: '', en: '', fr: '', es: '' })
+  const [messages, setMessages] = useState<Record<BroadcastLocale, string>>({ de: '', en: '', fr: '', es: '' })
+  const [activeTab, setActiveTab] = useState<BroadcastLocale>('de')
   const [timeFrom, setTimeFrom] = useState('')
   const [timeTo, setTimeTo] = useState('')
   const [sending, setSending] = useState(false)
@@ -113,12 +119,19 @@ export default function BroadcastPage() {
   const [testMailResult, setTestMailResult] = useState<{ sent: number; failed: number; errors: string[] } | null>(null)
   const [testMailError, setTestMailError] = useState('')
 
-  const tpl = TEMPLATES.find((t) => t.id === selectedTemplate)!
+  const tpl = TEMPLATES.find((tpl) => tpl.id === selectedTemplate)!
+
+  const LANG_TAB_LABELS: Record<BroadcastLocale, string> = {
+    de: t('admin.broadcast.langTabDe'),
+    en: t('admin.broadcast.langTabEn'),
+    fr: t('admin.broadcast.langTabFr'),
+    es: t('admin.broadcast.langTabEs'),
+  }
 
   function buildPayload() {
     return {
-      subject: subject.trim(),
-      message: message.trim(),
+      subjects,
+      messages,
       template: selectedTemplate,
       timeFrom: timeFrom.trim() || undefined,
       timeTo: timeTo.trim() || undefined,
@@ -126,7 +139,7 @@ export default function BroadcastPage() {
   }
 
   async function handlePreview() {
-    if (!subject.trim() || !message.trim()) { setError('Bitte Betreff und Nachricht eingeben.'); return }
+    if (!subjects.de.trim() || !messages.de.trim()) { setError(t('admin.broadcast.subjectRequired') + ' ' + t('admin.broadcast.messageRequired')); return }
     setError('')
     setPreviewLoading(true)
     try {
@@ -136,13 +149,13 @@ export default function BroadcastPage() {
         body: JSON.stringify({ ...buildPayload(), sendTest: false }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Fehler beim Laden der Vorschau'); return }
+      if (!res.ok) { setError(data.error ?? t('common.error')); return }
       setPreviewHtml(data.html)
       setPreviewOpen(true)
       setTestMailResult(null)
       setTestMailError('')
     } catch {
-      setError('Netzwerkfehler')
+      setError(t('common.networkError'))
     } finally {
       setPreviewLoading(false)
     }
@@ -159,18 +172,18 @@ export default function BroadcastPage() {
         body: JSON.stringify({ ...buildPayload(), sendTest: true }),
       })
       const data = await res.json()
-      if (!res.ok) { setTestMailError(data.error ?? 'Fehler beim Senden'); return }
+      if (!res.ok) { setTestMailError(data.error ?? t('common.error')); return }
       setTestMailResult(data)
     } catch {
-      setTestMailError('Netzwerkfehler')
+      setTestMailError(t('common.networkError'))
     } finally {
       setTestMailLoading(false)
     }
   }
 
   async function handleSend() {
-    if (!subject.trim()) { setError('Bitte einen Betreff eingeben.'); return }
-    if (!message.trim()) { setError('Bitte eine Nachricht eingeben.'); return }
+    if (!subjects.de.trim()) { setError(t('admin.broadcast.subjectRequired')); return }
+    if (!messages.de.trim()) { setError(t('admin.broadcast.messageRequired')); return }
     setError('')
     setSending(true)
     setResult(null)
@@ -181,58 +194,61 @@ export default function BroadcastPage() {
         body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Fehler beim Senden'); return }
+      if (!res.ok) { setError(data.error ?? t('common.error')); return }
       setResult(data)
     } catch {
-      setError('Netzwerkfehler')
+      setError(t('common.networkError'))
     } finally {
       setSending(false)
     }
   }
+
+  const previewSubject = subjects[activeTab] || subjects.de
+  const previewMessage = messages[activeTab] || messages.de
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <SendIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Rundmail</Typography>
+          <Typography variant="h5">{t('admin.broadcast.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Nachricht an Nutzer mit Marketing-Einwilligung senden
+            {t('admin.broadcast.subtitle')}
           </Typography>
         </Box>
       </Box>
 
       {/* Template picker */}
       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-        Vorlage wählen
+        {t('admin.broadcast.chooseTemplate')}
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 1.5, mb: 3 }}>
-        {TEMPLATES.map((t) => (
+        {TEMPLATES.map((tmpl) => (
           <Card
-            key={t.id}
-            variant={selectedTemplate === t.id ? 'elevation' : 'outlined'}
+            key={tmpl.id}
+            variant={selectedTemplate === tmpl.id ? 'elevation' : 'outlined'}
             sx={{
-              border: selectedTemplate === t.id ? `2px solid ${t.color}` : '1px solid',
-              borderColor: selectedTemplate === t.id ? t.color : 'divider',
+              border: selectedTemplate === tmpl.id ? `2px solid ${tmpl.color}` : '1px solid',
+              borderColor: selectedTemplate === tmpl.id ? tmpl.color : 'divider',
               transition: 'border-color 0.15s',
             }}
           >
-            <CardActionArea onClick={() => setSelectedTemplate(t.id)} sx={{ p: 1.5 }}>
+            <CardActionArea onClick={() => setSelectedTemplate(tmpl.id)} sx={{ p: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box
                   sx={{
                     width: 40, height: 40, borderRadius: 1.5, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', bgcolor: t.bgColor, color: t.color, flexShrink: 0,
+                    justifyContent: 'center', bgcolor: tmpl.bgColor, color: tmpl.color, flexShrink: 0,
                   }}
                 >
-                  {t.icon}
+                  {tmpl.icon}
                 </Box>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-                    {t.label}
+                    {tmpl.label}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
-                    {t.description}
+                    {tmpl.description}
                   </Typography>
                 </Box>
               </Box>
@@ -248,13 +264,13 @@ export default function BroadcastPage() {
             {tpl.eyebrow}
           </Typography>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 0.5 }}>
-            {subject || 'Betreff der E-Mail'}
+            {previewSubject || t('admin.broadcast.subjectLabel')}
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.75 }}>📚 Bibliothek</Typography>
         </Box>
         <Box sx={{ bgcolor: 'background.paper', px: 3, py: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            {message ? (message.length > 140 ? message.slice(0, 140) + '…' : message) : 'Nachrichteninhalt erscheint hier…'}
+            {previewMessage ? (previewMessage.length > 140 ? previewMessage.slice(0, 140) + '…' : previewMessage) : t('admin.broadcast.messagePlaceholder')}
           </Typography>
           {(timeFrom || timeTo) && (
             <Box sx={{ mt: 1, display: 'inline-block', bgcolor: tpl.bgColor, borderRadius: 1, px: 1.5, py: 0.5 }}>
@@ -269,59 +285,74 @@ export default function BroadcastPage() {
       {/* Form */}
       <Card>
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>E-Mail verfassen</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('admin.broadcast.compose')}</Typography>
           <Divider />
 
-          <TextField
-            label="Betreff"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-            fullWidth
-            size="small"
-            placeholder="z.B. Geplante Wartungsarbeiten am 20. April"
-          />
+          {/* Language tabs */}
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v as BroadcastLocale)}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            {BROADCAST_LOCALES.map((locale) => (
+              <Tab key={locale} value={locale} label={LANG_TAB_LABELS[locale]} />
+            ))}
+          </Tabs>
 
-          <TextField
-            label="Nachricht"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-            fullWidth
-            multiline
-            rows={5}
-            size="small"
-            placeholder="Schreibe hier deine Nachricht…"
-          />
+          {BROADCAST_LOCALES.map((locale) => (
+            <Box key={locale} sx={{ display: activeTab === locale ? 'flex' : 'none', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label={t('admin.broadcast.subjectLabel')}
+                value={subjects[locale]}
+                onChange={(e) => setSubjects((prev) => ({ ...prev, [locale]: e.target.value }))}
+                required={locale === 'de'}
+                fullWidth
+                size="small"
+                placeholder={t('admin.broadcast.subjectPlaceholder')}
+              />
+              <TextField
+                label={t('admin.broadcast.messageLabel')}
+                value={messages[locale]}
+                onChange={(e) => setMessages((prev) => ({ ...prev, [locale]: e.target.value }))}
+                required={locale === 'de'}
+                fullWidth
+                multiline
+                rows={5}
+                size="small"
+                placeholder={t('admin.broadcast.messagePlaceholder')}
+              />
+            </Box>
+          ))}
 
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              Zeitangabe (optional)
+              {t('admin.broadcast.timeSection')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Tooltip title="Startzeitpunkt oder einzelner Zeitpunkt">
                 <TextField
-                  label="Von / Ab"
+                  label={t('admin.broadcast.timeFrom')}
                   value={timeFrom}
                   onChange={(e) => setTimeFrom(e.target.value)}
                   size="small"
-                  placeholder="z.B. 20. April 2026, 10:00 Uhr"
+                  placeholder={t('admin.broadcast.timeFromPlaceholder')}
                   sx={{ flex: 1, minWidth: 200 }}
                 />
               </Tooltip>
               <Tooltip title="Endzeitpunkt (leer lassen für Einzelzeitpunkt)">
                 <TextField
-                  label="Bis"
+                  label={t('admin.broadcast.timeTo')}
                   value={timeTo}
                   onChange={(e) => setTimeTo(e.target.value)}
                   size="small"
-                  placeholder="z.B. 20. April 2026, 18:00 Uhr"
+                  placeholder={t('admin.broadcast.timeToPlaceholder')}
                   sx={{ flex: 1, minWidth: 200 }}
                 />
               </Tooltip>
             </Box>
             <Typography variant="caption" color="text.secondary">
-              Freitext – wird genau so in der E-Mail angezeigt
+              {t('admin.broadcast.timeHelper')}
             </Typography>
           </Box>
         </CardContent>
@@ -336,8 +367,10 @@ export default function BroadcastPage() {
           sx={{ mt: 2 }}
         >
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {result.sent} E-Mail{result.sent !== 1 ? 's' : ''} erfolgreich gesendet
-            {result.failed > 0 && `, ${result.failed} fehlgeschlagen`}
+            {result.sent === 1
+              ? t('admin.broadcast.sentSuccess', { count: result.sent })
+              : t('admin.broadcast.sentSuccessPlural', { count: result.sent })}
+            {result.failed > 0 && t('admin.broadcast.failedCount', { count: result.failed })}
           </Typography>
           {result.errors.length > 0 && (
             <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2 }}>
@@ -356,18 +389,18 @@ export default function BroadcastPage() {
           variant="outlined"
           startIcon={previewLoading ? <CircularProgress size={16} /> : <PreviewIcon />}
           onClick={handlePreview}
-          disabled={previewLoading || sending || !subject.trim() || !message.trim()}
+          disabled={previewLoading || sending || !subjects.de.trim() || !messages.de.trim()}
         >
-          Vorschau
+          {t('admin.broadcast.previewButton')}
         </Button>
         <Button
           variant="contained"
           size="large"
           startIcon={sending ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
           onClick={handleSend}
-          disabled={sending || !subject.trim() || !message.trim()}
+          disabled={sending || !subjects.de.trim() || !messages.de.trim()}
         >
-          {sending ? 'Sende…' : 'Rundmail senden'}
+          {sending ? t('admin.broadcast.sending') : t('admin.broadcast.sendButton')}
         </Button>
       </Box>
 
@@ -376,7 +409,7 @@ export default function BroadcastPage() {
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PreviewIcon />
-            <Typography variant="h6">E-Mail-Vorschau</Typography>
+            <Typography variant="h6">{t('admin.broadcast.previewTitle')}</Typography>
           </Box>
           <IconButton onClick={() => setPreviewOpen(false)} size="small"><CloseIcon /></IconButton>
         </DialogTitle>
@@ -385,7 +418,7 @@ export default function BroadcastPage() {
           <Box sx={{ px: 3, py: 2, bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-                Testmail an konfigurierte Testgruppe senden (Einstellungen → Testgruppe)
+                {t('admin.broadcast.testMailNote')}
               </Typography>
               <Button
                 variant="outlined"
@@ -394,7 +427,7 @@ export default function BroadcastPage() {
                 onClick={handleSendTest}
                 disabled={testMailLoading}
               >
-                Testmail senden
+                {t('admin.broadcast.testMailButton')}
               </Button>
             </Box>
             {testMailError && (
@@ -406,7 +439,8 @@ export default function BroadcastPage() {
                 sx={{ mt: 1 }}
                 onClose={() => setTestMailResult(null)}
               >
-                {testMailResult.sent} gesendet{testMailResult.failed > 0 && `, ${testMailResult.failed} fehlgeschlagen`}
+                {testMailResult.sent === 1 ? t('admin.broadcast.sentSuccess', { count: testMailResult.sent }) : t('admin.broadcast.sentSuccessPlural', { count: testMailResult.sent })}
+                {testMailResult.failed > 0 && t('admin.broadcast.failedCount', { count: testMailResult.failed })}
               </Alert>
             )}
           </Box>
@@ -415,7 +449,7 @@ export default function BroadcastPage() {
             component="iframe"
             srcDoc={previewHtml}
             sx={{ width: '100%', height: 600, border: 'none', display: 'block' }}
-            title="E-Mail-Vorschau"
+            title={t('admin.broadcast.previewTitle')}
           />
         </DialogContent>
       </Dialog>

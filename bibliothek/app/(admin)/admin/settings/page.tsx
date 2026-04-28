@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, CircularProgress,
   Container, Divider, TextField, Typography,
@@ -10,6 +11,7 @@ import SaveIcon from '@mui/icons-material/Save'
 import MailOutlineIcon from '@mui/icons-material/Mail'
 
 export default function AdminSettingsPage() {
+  const { t } = useTranslation()
   const [testEmails, setTestEmails] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -34,10 +36,10 @@ export default function AdminSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'broadcast_test_emails', value: testEmails.trim() }),
       })
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Fehler'); return }
-      setMessage('Einstellungen gespeichert.')
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? t('common.error')); return }
+      setMessage(t('admin.settings.saved'))
     } catch {
-      setError('Netzwerkfehler')
+      setError(t('common.networkError'))
     } finally {
       setSaving(false)
     }
@@ -48,8 +50,8 @@ export default function AdminSettingsPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <TuneIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Systemeinstellungen</Typography>
-          <Typography variant="body2" color="text.secondary">Konfiguration für Administratoren</Typography>
+          <Typography variant="h5">{t('admin.settings.title')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('admin.settings.subtitle')}</Typography>
         </Box>
       </Box>
 
@@ -63,22 +65,21 @@ export default function AdminSettingsPage() {
           <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <MailOutlineIcon color="action" />
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Testgruppe für Rundmails</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('admin.settings.testGroupTitle')}</Typography>
             </Box>
             <Divider />
             <Typography variant="body2" color="text.secondary">
-              Diese E-Mail-Adressen erhalten Testmails, wenn auf der Rundmail-Seite „Testmail senden" geklickt wird.
-              Mehrere Adressen mit Komma trennen.
+              {t('admin.settings.testGroupDesc')}
             </Typography>
             <TextField
-              label="Testgruppe (kommagetrennte E-Mails)"
+              label={t('admin.settings.testGroupLabel')}
               value={testEmails}
               onChange={(e) => setTestEmails(e.target.value)}
               fullWidth
               multiline
               rows={3}
               size="small"
-              placeholder="test@example.com, admin@example.com"
+              placeholder={t('admin.settings.testGroupPlaceholder')}
             />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button
@@ -87,7 +88,7 @@ export default function AdminSettingsPage() {
                 onClick={save}
                 disabled={saving}
               >
-                Speichern
+                {saving ? t('common.saving') : t('common.save')}
               </Button>
             </Box>
           </CardContent>

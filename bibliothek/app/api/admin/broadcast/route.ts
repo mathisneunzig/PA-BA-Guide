@@ -12,39 +12,44 @@ const VALID_TEMPLATES: BroadcastTemplate[] = [
   'broadcast-newbooks',
 ]
 
+const SUPPORTED_LOCALES = ['de', 'en', 'fr', 'es'] as const
+type Locale = typeof SUPPORTED_LOCALES[number]
+
 /**
  * POST /api/admin/broadcast
- * Body: { subject, message, template, timeFrom?, timeTo? }
+ * Body: { subjects, messages, template, timeFrom?, timeTo? }
+ *   subjects: Record<Locale, string> — per-language subject
+ *   messages: Record<Locale, string> — per-language message body
  *
- * Sends a broadcast email to users who have given marketing consent.
+ * Each user receives the email in their preferredLocale (default 'en').
  * Returns { sent: number, failed: number, errors: string[] }
  */
 export async function POST(request: NextRequest) {
   await requireRole('ADMIN')
 
   const body = await request.json()
-  const { subject, message, template, timeFrom, timeTo } = body as {
-    subject: string
-    message: string
+  const { subjects, messages, template, timeFrom, timeTo } = body as {
+    subjects: Record<Locale, string>
+    messages: Record<Locale, string>
     template: BroadcastTemplate
     timeFrom?: string
     timeTo?: string
   }
 
-  if (!subject?.trim()) {
-    return NextResponse.json({ error: 'Betreff fehlt' }, { status: 400 })
+  if (!subjects || !messages) {
+    return NextResponse.json({ error: 'subjects and messages required' }, { status: 400 })
   }
-  if (!message?.trim()) {
-    return NextResponse.json({ error: 'Nachricht fehlt' }, { status: 400 })
+  if (!subjects['de']?.trim() || !messages['de']?.trim()) {
+    return NextResponse.json({ error: 'German (DE) subject and message are required' }, { status: 400 })
   }
   if (!VALID_TEMPLATES.includes(template)) {
-    return NextResponse.json({ error: 'Ungültige Vorlage' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid template' }, { status: 400 })
   }
 
   // Broadcast emails require marketing consent
   const users = await prisma.user.findMany({
     where: { role: { not: 'GUEST' }, marketingConsent: true },
-    select: { email: true },
+    select: { email: true, preferredLocale: true },
   })
 
   let sent = 0
@@ -53,11 +58,15 @@ export async function POST(request: NextRequest) {
 
   for (const user of users) {
     if (!user.email) { failed++; continue }
+    const locale = (SUPPORTED_LOCALES.includes(user.preferredLocale as Locale) ? user.preferredLocale : 'en') as Locale
+    const subject = subjects[locale]?.trim() || subjects['en']?.trim() || subjects['de']?.trim()
+    const message = messages[locale]?.trim() || messages['en']?.trim() || messages['de']?.trim()
+
     try {
       await sendBroadcastEmail({
         to: user.email,
-        subject: subject.trim(),
-        message: message.trim(),
+        subject,
+        message,
         template,
         timeFrom: timeFrom?.trim() || undefined,
         timeTo: timeTo?.trim() || undefined,

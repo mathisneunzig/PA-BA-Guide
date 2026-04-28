@@ -1,10 +1,12 @@
 'use client'
 
 import { createContext, useContext, useEffect, useMemo, useState, Suspense } from 'react'
-import { SessionProvider } from 'next-auth/react'
+import { SessionProvider, useSession } from 'next-auth/react'
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
+import { I18nextProvider } from 'react-i18next'
 import { CartProvider } from '@/lib/cart/CartContext'
 import NavigationProgress from '@/app/components/NavigationProgress'
+import i18n from '@/lib/i18n/config'
 
 type ColorMode = 'light' | 'dark'
 
@@ -149,6 +151,24 @@ function buildTheme(mode: ColorMode) {
   })
 }
 
+// Syncs the user's preferredLocale from DB to i18n on login
+function LocaleSync() {
+  const { data: session } = useSession()
+  useEffect(() => {
+    if (!session?.user) return
+    fetch('/api/users/locale')
+      .then((r) => r.json())
+      .then(({ locale }) => {
+        if (!locale) return
+        localStorage.setItem('locale', locale)
+        document.cookie = `locale=${locale}; path=/; max-age=31536000; SameSite=Lax`
+        i18n.changeLanguage(locale)
+      })
+      .catch(() => {})
+  }, [session?.user?.id])
+  return null
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   // Read initial color mode from the data attribute set by the inline script in layout.tsx.
   // This avoids the visibility:hidden flash while still preventing light/dark flicker.
@@ -181,15 +201,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ColorModeContext.Provider value={{ mode, toggle }}>
       <SessionProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <CartProvider>
-            <Suspense>
-              <NavigationProgress />
-            </Suspense>
-            {children}
-          </CartProvider>
-        </ThemeProvider>
+        <I18nextProvider i18n={i18n}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <LocaleSync />
+            <CartProvider>
+              <Suspense>
+                <NavigationProgress />
+              </Suspense>
+              {children}
+            </CartProvider>
+          </ThemeProvider>
+        </I18nextProvider>
       </SessionProvider>
     </ColorModeContext.Provider>
   )

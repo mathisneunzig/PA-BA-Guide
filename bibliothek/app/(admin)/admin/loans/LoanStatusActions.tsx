@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { LoanStatus } from '@prisma/client'
 import {
   Box, Button, CircularProgress, Divider, ListItemIcon, ListItemText,
@@ -24,41 +25,26 @@ interface ItemActionsProps {
   onDone: () => void
 }
 
-// Group-level transitions (activate whole group, cancel whole group)
-const GROUP_TRANSITIONS: Partial<Record<LoanStatus, Array<{ to: 'ACTIVE' | 'CANCELLED'; label: string; icon: React.ReactNode; color?: string }>>> = {
-  RESERVED: [
-    { to: 'ACTIVE',    label: 'Alle aktivieren',   icon: <CheckCircleIcon fontSize="small" />, color: 'success.main' },
-    { to: 'CANCELLED', label: 'Alle stornieren',   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
-  ],
-  ACTIVE: [
-    { to: 'CANCELLED', label: 'Alle stornieren',   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
-  ],
-  OVERDUE: [
-    { to: 'CANCELLED', label: 'Alle stornieren',   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
-  ],
-}
-
-// Item-level transitions
-const ITEM_TRANSITIONS: Partial<Record<LoanStatus, Array<{ to: 'RETURNED' | 'CANCELLED' | 'OVERDUE'; label: string; icon: React.ReactNode; color?: string }>>> = {
-  ACTIVE: [
-    { to: 'RETURNED',  label: 'Zurückgeben',              icon: <AssignmentReturnIcon fontSize="small" />, color: 'primary.main' },
-    { to: 'OVERDUE',   label: 'Als überfällig markieren', icon: <WarningAmberIcon fontSize="small" />,     color: 'warning.main' },
-    { to: 'CANCELLED', label: 'Stornieren',               icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
-  ],
-  OVERDUE: [
-    { to: 'RETURNED',  label: 'Zurückgeben',              icon: <AssignmentReturnIcon fontSize="small" />, color: 'primary.main' },
-    { to: 'CANCELLED', label: 'Stornieren',               icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
-  ],
-  RESERVED: [
-    { to: 'CANCELLED', label: 'Stornieren',               icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
-  ],
-}
-
 /** Group-level actions (shown in the main table row) */
 export function GroupStatusActions({ groupId, groupStatus, onDone }: GroupActionsProps) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  // Group-level transitions (activate whole group, cancel whole group)
+  const GROUP_TRANSITIONS: Partial<Record<LoanStatus, Array<{ to: 'ACTIVE' | 'CANCELLED'; label: string; icon: React.ReactNode; color?: string }>>> = {
+    RESERVED: [
+      { to: 'ACTIVE',    label: t('admin.loans.activateAll'), icon: <CheckCircleIcon fontSize="small" />, color: 'success.main' },
+      { to: 'CANCELLED', label: t('admin.loans.cancelAll'),   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
+    ],
+    ACTIVE: [
+      { to: 'CANCELLED', label: t('admin.loans.cancelAll'),   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
+    ],
+    OVERDUE: [
+      { to: 'CANCELLED', label: t('admin.loans.cancelAll'),   icon: <CancelIcon fontSize="small" />,      color: 'error.main' },
+    ],
+  }
 
   const transitions = GROUP_TRANSITIONS[groupStatus] ?? []
   if (transitions.length === 0) return null
@@ -75,7 +61,7 @@ export function GroupStatusActions({ groupId, groupStatus, onDone }: GroupAction
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Fehler')
+        setError(d.error ?? t('common.error'))
       } else {
         onDone()
       }
@@ -85,16 +71,16 @@ export function GroupStatusActions({ groupId, groupStatus, onDone }: GroupAction
   }
 
   if (transitions.length === 1) {
-    const t = transitions[0]
+    const tr = transitions[0]
     return (
       <Box>
         <Button
           size="small" variant="outlined" disabled={loading}
-          startIcon={loading ? <CircularProgress size={13} /> : t.icon}
-          onClick={() => apply(t.to)}
-          sx={{ color: t.color, borderColor: t.color }}
+          startIcon={loading ? <CircularProgress size={13} /> : tr.icon}
+          onClick={() => apply(tr.to)}
+          sx={{ color: tr.color, borderColor: tr.color }}
         >
-          {t.label}
+          {tr.label}
         </Button>
         {error && <Typography variant="caption" color="error">{error}</Typography>}
       </Box>
@@ -103,22 +89,22 @@ export function GroupStatusActions({ groupId, groupStatus, onDone }: GroupAction
 
   return (
     <Box>
-      <Tooltip title="Gruppen-Aktion">
+      <Tooltip title={t('admin.loans.groupAction')}>
         <Button
           size="small" variant="outlined" disabled={loading}
           endIcon={loading ? <CircularProgress size={13} /> : <ExpandMoreIcon fontSize="small" />}
           onClick={(e) => setAnchorEl(e.currentTarget)}
         >
-          Aktion
+          {t('admin.loans.action')}
         </Button>
       </Tooltip>
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-        {transitions.map((t, i) => (
-          <Box key={t.to}>
+        {transitions.map((tr, i) => (
+          <Box key={tr.to}>
             {i > 0 && <Divider />}
-            <MenuItem onClick={() => apply(t.to)} dense>
-              <ListItemIcon sx={{ color: t.color }}>{t.icon}</ListItemIcon>
-              <ListItemText primary={t.label} slotProps={{ primary: { variant: 'body2', sx: { color: t.color } } }} />
+            <MenuItem onClick={() => apply(tr.to)} dense>
+              <ListItemIcon sx={{ color: tr.color }}>{tr.icon}</ListItemIcon>
+              <ListItemText primary={tr.label} slotProps={{ primary: { variant: 'body2', sx: { color: tr.color } } }} />
             </MenuItem>
           </Box>
         ))}
@@ -130,9 +116,26 @@ export function GroupStatusActions({ groupId, groupStatus, onDone }: GroupAction
 
 /** Item-level actions (shown per book inside expanded group) */
 export function ItemStatusActions({ itemId, itemStatus, onDone }: ItemActionsProps) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  // Item-level transitions
+  const ITEM_TRANSITIONS: Partial<Record<LoanStatus, Array<{ to: 'RETURNED' | 'CANCELLED' | 'OVERDUE'; label: string; icon: React.ReactNode; color?: string }>>> = {
+    ACTIVE: [
+      { to: 'RETURNED',  label: t('admin.loans.returnItem'),   icon: <AssignmentReturnIcon fontSize="small" />, color: 'primary.main' },
+      { to: 'OVERDUE',   label: t('admin.loans.markOverdue'),  icon: <WarningAmberIcon fontSize="small" />,     color: 'warning.main' },
+      { to: 'CANCELLED', label: t('admin.loans.cancelItem'),   icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
+    ],
+    OVERDUE: [
+      { to: 'RETURNED',  label: t('admin.loans.returnItem'),   icon: <AssignmentReturnIcon fontSize="small" />, color: 'primary.main' },
+      { to: 'CANCELLED', label: t('admin.loans.cancelItem'),   icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
+    ],
+    RESERVED: [
+      { to: 'CANCELLED', label: t('admin.loans.cancelItem'),   icon: <CancelIcon fontSize="small" />,           color: 'error.main' },
+    ],
+  }
 
   const transitions = ITEM_TRANSITIONS[itemStatus] ?? []
   if (transitions.length === 0) return null
@@ -149,7 +152,7 @@ export function ItemStatusActions({ itemId, itemStatus, onDone }: ItemActionsPro
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Fehler')
+        setError(d.error ?? t('common.error'))
       } else {
         onDone()
       }
@@ -159,16 +162,16 @@ export function ItemStatusActions({ itemId, itemStatus, onDone }: ItemActionsPro
   }
 
   if (transitions.length === 1) {
-    const t = transitions[0]
+    const tr = transitions[0]
     return (
       <Box sx={{ display: 'inline-flex', flexDirection: 'column' }}>
         <Button
           size="small" variant="text" disabled={loading}
-          startIcon={loading ? <CircularProgress size={12} /> : t.icon}
-          onClick={() => apply(t.to)}
-          sx={{ color: t.color, fontSize: 11, py: 0.25, px: 0.75 }}
+          startIcon={loading ? <CircularProgress size={12} /> : tr.icon}
+          onClick={() => apply(tr.to)}
+          sx={{ color: tr.color, fontSize: 11, py: 0.25, px: 0.75 }}
         >
-          {t.label}
+          {tr.label}
         </Button>
         {error && <Typography variant="caption" color="error">{error}</Typography>}
       </Box>
@@ -183,15 +186,15 @@ export function ItemStatusActions({ itemId, itemStatus, onDone }: ItemActionsPro
         onClick={(e) => setAnchorEl(e.currentTarget)}
         sx={{ fontSize: 11, py: 0.25, px: 0.75 }}
       >
-        Aktion
+        {t('admin.loans.action')}
       </Button>
       <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-        {transitions.map((t, i) => (
-          <Box key={t.to}>
-            {i > 0 && t.to === 'CANCELLED' && <Divider />}
-            <MenuItem onClick={() => apply(t.to)} dense>
-              <ListItemIcon sx={{ color: t.color }}>{t.icon}</ListItemIcon>
-              <ListItemText primary={t.label} slotProps={{ primary: { variant: 'body2', sx: { color: t.color } } }} />
+        {transitions.map((tr, i) => (
+          <Box key={tr.to}>
+            {i > 0 && tr.to === 'CANCELLED' && <Divider />}
+            <MenuItem onClick={() => apply(tr.to)} dense>
+              <ListItemIcon sx={{ color: tr.color }}>{tr.icon}</ListItemIcon>
+              <ListItemText primary={tr.label} slotProps={{ primary: { variant: 'body2', sx: { color: tr.color } } }} />
             </MenuItem>
           </Box>
         ))}

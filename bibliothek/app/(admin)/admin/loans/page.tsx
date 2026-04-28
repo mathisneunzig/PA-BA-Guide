@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { LoanStatus } from '@prisma/client'
 import {
   Box, Button, Chip, CircularProgress, Collapse, Container, IconButton, Stack,
@@ -18,15 +19,11 @@ import Link from 'next/link'
 import { GroupStatusActions, ItemStatusActions } from './LoanStatusActions'
 
 const STATUS_OPTIONS = ['', 'RESERVED', 'ACTIVE', 'RETURNED', 'OVERDUE', 'CANCELLED'] as const
-const STATUS_LABEL: Record<string, string> = {
-  '': 'Alle', RESERVED: 'Reserviert', ACTIVE: 'Ausgeliehen',
-  RETURNED: 'Zurückgegeben', OVERDUE: 'Überfällig', CANCELLED: 'Storniert',
-}
+
 const STATUS_COLOR: Record<LoanStatus, 'warning' | 'success' | 'default' | 'error' | 'info'> = {
   RESERVED: 'warning', ACTIVE: 'success', RETURNED: 'default', OVERDUE: 'error', CANCELLED: 'default',
 }
 
-const HANDOVER_LABEL: Record<string, string> = { PICKUP: 'Abholung', MEETINGPOINT: 'Treffpunkt', SHIPPING: 'Versand' }
 const HANDOVER_ICON: Record<string, React.ReactNode> = {
   PICKUP: <MeetingRoomIcon fontSize="inherit" />,
   MEETINGPOINT: <PinDropIcon fontSize="inherit" />,
@@ -55,11 +52,17 @@ interface LoanGroup {
 }
 
 function HandoverCell({ group }: { group: LoanGroup }) {
+  const { t } = useTranslation()
+  const HANDOVER_LABEL: Record<string, string> = {
+    PICKUP: t('admin.loans.handoverPickup'),
+    MEETINGPOINT: t('admin.loans.handoverMeetingpoint'),
+    SHIPPING: t('admin.loans.handoverShipping'),
+  }
   if (!group.handoverMethod) return <Typography variant="caption" color="text.disabled">—</Typography>
   const label = HANDOVER_LABEL[group.handoverMethod] ?? group.handoverMethod
   const icon = HANDOVER_ICON[group.handoverMethod]
   const details: string[] = []
-  if (group.handoverDate) details.push(new Date(group.handoverDate).toLocaleDateString('de-DE'))
+  if (group.handoverDate) details.push(new Date(group.handoverDate).toLocaleDateString())
   if (group.handoverLocation) details.push(group.handoverLocation)
   if (group.handoverCost != null) details.push(`${Number(group.handoverCost).toFixed(2)} €`)
   const tooltipText = details.length > 0 ? details.join(' · ') : label
@@ -79,7 +82,17 @@ function HandoverCell({ group }: { group: LoanGroup }) {
 }
 
 function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
+
+  const STATUS_LABEL: Record<string, string> = {
+    '': t('admin.loans.all'),
+    RESERVED: t('admin.loans.reserved'),
+    ACTIVE: t('admin.loans.active'),
+    RETURNED: t('admin.loans.returned'),
+    OVERDUE: t('admin.loans.overdue'),
+    CANCELLED: t('admin.loans.cancelled'),
+  }
 
   return (
     <>
@@ -95,7 +108,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
             <Typography variant="body2">
               {group.items.length === 1
                 ? group.items[0].book.title
-                : `${group.items.length} Bücher`}
+                : t('admin.loans.booksCount', { count: group.items.length })}
             </Typography>
           </Box>
           {group.items.length > 1 && (
@@ -116,7 +129,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
         </TableCell>
         <TableCell>
           <Typography variant="body2" color={group.status === 'OVERDUE' ? 'error' : 'inherit'}>
-            {new Date(group.dueDate).toLocaleDateString('de-DE')}
+            {new Date(group.dueDate).toLocaleDateString()}
           </Typography>
         </TableCell>
         <TableCell>
@@ -131,7 +144,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
             <Box sx={{ bgcolor: 'action.hover', px: 3, py: 1 }}>
               {group.notes && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
-                  Notiz: {group.notes}
+                  {t('admin.loans.note', { note: group.notes })}
                 </Typography>
               )}
               <Table size="small">
@@ -143,7 +156,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
                         <Typography variant="caption" color="text.secondary">{item.book.author}</Typography>
                         {item.book.regalnummer && (
                           <Typography variant="caption" color="text.disabled" sx={{ ml: 1 }}>
-                            Regal: {item.book.regalnummer}
+                            {t('admin.loans.shelf', { shelf: item.book.regalnummer })}
                           </Typography>
                         )}
                       </TableCell>
@@ -153,7 +166,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
                       <TableCell sx={{ border: 0, py: 0.5 }}>
                         {item.returnedAt && (
                           <Typography variant="caption" color="text.secondary">
-                            Zurück: {new Date(item.returnedAt).toLocaleDateString('de-DE')}
+                            {t('admin.loans.returned_date', { date: new Date(item.returnedAt).toLocaleDateString() })}
                           </Typography>
                         )}
                       </TableCell>
@@ -173,6 +186,7 @@ function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
 }
 
 function AdminLoansContent() {
+  const { t } = useTranslation()
   const searchParams = useSearchParams()
   const status = (searchParams.get('status') ?? '') as LoanStatus | ''
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
@@ -183,6 +197,17 @@ function AdminLoansContent() {
 
   const limit = 25
   const pages = Math.ceil(total / limit)
+
+  const STATUS_LABEL: Record<string, string> = {
+    '': t('admin.loans.all'),
+    RESERVED: t('admin.loans.reserved'),
+    ACTIVE: t('admin.loans.active'),
+    RETURNED: t('admin.loans.returned'),
+    OVERDUE: t('admin.loans.overdue'),
+    CANCELLED: t('admin.loans.cancelled'),
+  }
+
+  const STATUS_OPTIONS_LOCAL = ['', 'RESERVED', 'ACTIVE', 'RETURNED', 'OVERDUE', 'CANCELLED'] as const
 
   const load = useCallback(() => {
     setLoading(true)
@@ -209,11 +234,11 @@ function AdminLoansContent() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <BookmarkIcon sx={{ fontSize: 36, color: 'primary.main' }} />
-        <Typography variant="h5">Alle Ausleihen</Typography>
+        <Typography variant="h5">{t('admin.loans.title')}</Typography>
       </Box>
 
       <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        {STATUS_OPTIONS.map((s) => (
+        {STATUS_OPTIONS_LOCAL.map((s) => (
           <Chip
             key={s}
             label={STATUS_LABEL[s]}
@@ -227,7 +252,7 @@ function AdminLoansContent() {
       </Stack>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {total} Ausleihe{total !== 1 ? 'n' : ''}
+        {t('admin.loans.count', { count: total })}
       </Typography>
 
       {loading ? (
@@ -240,12 +265,12 @@ function AdminLoansContent() {
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 600 } }}>
                 <TableCell sx={{ width: 36 }} />
-                <TableCell>Bücher</TableCell>
-                <TableCell>Nutzer</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Übergabe</TableCell>
-                <TableCell>Fällig</TableCell>
-                <TableCell>Aktionen</TableCell>
+                <TableCell>{t('admin.loans.colBooks')}</TableCell>
+                <TableCell>{t('admin.loans.colUser')}</TableCell>
+                <TableCell>{t('admin.loans.colStatus')}</TableCell>
+                <TableCell>{t('admin.loans.colHandover')}</TableCell>
+                <TableCell>{t('admin.loans.colDue')}</TableCell>
+                <TableCell>{t('admin.loans.colActions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -255,7 +280,7 @@ function AdminLoansContent() {
               {groups.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                    Keine Ausleihen gefunden.
+                    {t('admin.loans.empty')}
                   </TableCell>
                 </TableRow>
               )}
@@ -267,13 +292,13 @@ function AdminLoansContent() {
       {pages > 1 && (
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center', mt: 3 }}>
           {page > 1 && (
-            <Button component={Link} href={buildHref(status, page - 1)} variant="outlined" size="small">Zurück</Button>
+            <Button component={Link} href={buildHref(status, page - 1)} variant="outlined" size="small">{t('common.previousPage')}</Button>
           )}
           <Typography variant="body2" color="text.secondary">
-            Seite {page} von {pages}
+            {t('common.page', { page, pages })}
           </Typography>
           {page < pages && (
-            <Button component={Link} href={buildHref(status, page + 1)} variant="outlined" size="small">Weiter</Button>
+            <Button component={Link} href={buildHref(status, page + 1)} variant="outlined" size="small">{t('common.nextPage')}</Button>
           )}
         </Box>
       )}

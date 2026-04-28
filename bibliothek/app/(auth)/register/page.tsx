@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress,
   Divider, FormControlLabel, FormHelperText, Grid, IconButton,
@@ -17,10 +18,11 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 
 type FieldErrors = Record<string, string[]>
 
-const STEPS = ['Konto', 'Adresse & Einwilligung']
+const STEPS_KEYS = ['auth.stepAccount', 'auth.stepAddress'] as const
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
 
   // Step 1 fields
@@ -71,7 +73,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!agbAccepted) {
-      setFieldErrors((prev) => ({ ...prev, agbAccepted: ['Du musst den AGB zustimmen'] }))
+      setFieldErrors((prev) => ({ ...prev, agbAccepted: [t('auth.agbRequired')] }))
       return
     }
     setError('')
@@ -112,13 +114,13 @@ export default function RegisterPage() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <MenuBookIcon sx={{ fontSize: 48, color: 'primary.main' }} />
-            <Typography variant="h5" sx={{ mt: 1 }}>Konto erstellen</Typography>
-            <Typography variant="body2" color="text.secondary">Registriere dich für die Bibliothek</Typography>
+            <Typography variant="h5" sx={{ mt: 1 }}>{t('auth.registerTitle')}</Typography>
+            <Typography variant="body2" color="text.secondary">{t('auth.registerSubtitle')}</Typography>
           </Box>
 
           <Stepper activeStep={step} sx={{ mb: 3 }}>
-            {STEPS.map((label) => (
-              <Step key={label}><StepLabel>{label}</StepLabel></Step>
+            {STEPS_KEYS.map((key) => (
+              <Step key={key}><StepLabel>{t(key)}</StepLabel></Step>
             ))}
           </Stepper>
 
@@ -134,19 +136,19 @@ export default function RegisterPage() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Grid container spacing={2}>
                 <Grid size={6}>
-                  <TextField label="Vorname" name="firstname" value={form.firstname} onChange={handleChange} required fullWidth error={!!fe('firstname')} helperText={fe('firstname')} />
+                  <TextField label={t('auth.firstnameLabel')} name="firstname" value={form.firstname} onChange={handleChange} required fullWidth error={!!fe('firstname')} helperText={fe('firstname')} />
                 </Grid>
                 <Grid size={6}>
-                  <TextField label="Nachname" name="lastname" value={form.lastname} onChange={handleChange} required fullWidth error={!!fe('lastname')} helperText={fe('lastname')} />
+                  <TextField label={t('auth.lastnameLabel')} name="lastname" value={form.lastname} onChange={handleChange} required fullWidth error={!!fe('lastname')} helperText={fe('lastname')} />
                 </Grid>
               </Grid>
-              <TextField label="Benutzername" name="username" value={form.username} onChange={handleChange} required fullWidth error={!!fe('username')} helperText={fe('username') ?? 'Buchstaben, Zahlen, Unterstriche'} />
-              <TextField label="E-Mail" name="email" type="email" value={form.email} onChange={handleChange} required fullWidth error={!!fe('email')} helperText={fe('email')} />
-              <TextField label="Telefon (optional)" name="phone" type="tel" value={form.phone} onChange={handleChange} fullWidth />
+              <TextField label={t('auth.usernameLabel')} name="username" value={form.username} onChange={handleChange} required fullWidth error={!!fe('username')} helperText={fe('username') ?? t('auth.usernameHelper')} />
+              <TextField label={t('auth.emailLabel')} name="email" type="email" value={form.email} onChange={handleChange} required fullWidth error={!!fe('email')} helperText={fe('email')} />
+              <TextField label={t('auth.phoneLabel')} name="phone" type="tel" value={form.phone} onChange={handleChange} fullWidth />
               <TextField
-                label="Passwort" name="password" type={showPw ? 'text' : 'password'}
+                label={t('auth.passwordLabel')} name="password" type={showPw ? 'text' : 'password'}
                 value={form.password} onChange={handleChange} required fullWidth
-                error={!!fe('password')} helperText={fe('password') ?? 'Mind. 8 Zeichen, Großbuchstabe, Zahl, Sonderzeichen'}
+                error={!!fe('password')} helperText={fe('password') ?? t('auth.passwordHelper')}
                 slotProps={{ input: {
                   endAdornment: (
                     <InputAdornment position="end">
@@ -157,9 +159,9 @@ export default function RegisterPage() {
                   ),
                 } }}
               />
-              <TextField label="Passwort bestätigen" name="passwordConfirm" type={showPw ? 'text' : 'password'} value={form.passwordConfirm} onChange={handleChange} required fullWidth error={!!fe('passwordConfirm')} helperText={fe('passwordConfirm')} />
+              <TextField label={t('auth.passwordConfirmLabel')} name="passwordConfirm" type={showPw ? 'text' : 'password'} value={form.passwordConfirm} onChange={handleChange} required fullWidth error={!!fe('passwordConfirm')} helperText={fe('passwordConfirm')} />
               <Button variant="contained" size="large" fullWidth endIcon={<ArrowForwardIcon />} onClick={handleNext}>
-                Weiter
+                {t('common.next')}
               </Button>
             </Box>
           )}
@@ -167,7 +169,7 @@ export default function RegisterPage() {
           {/* Step 2: Address + Consent */}
           {step === 1 && (
             <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Adresse (optional)</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('auth.addressOptional')}</Typography>
               <Grid container spacing={2}>
                 <Grid size={8}>
                   <TextField label="Straße" name="street" value={address.street} onChange={handleAddressChange} fullWidth size="small" />
@@ -189,18 +191,17 @@ export default function RegisterPage() {
               <Divider sx={{ my: 1 }} />
 
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Einwilligungen</Typography>
-
               <Box>
                 <FormControlLabel
                   control={<Checkbox checked={marketingConsent} onChange={(e) => setMarketingConsent(e.target.checked)} />}
                   label={
                     <Typography variant="body2">
-                      Ich möchte gelegentlich Neuigkeiten, Veranstaltungshinweise und Infos zu neuen Büchern per E-Mail erhalten. (optional)
+                      {t('auth.marketingConsent')}
                     </Typography>
                   }
                 />
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4, mt: -0.5 }}>
-                  Ausleihbestätigungen und ähnliche Pflicht-E-Mails erhältst du unabhängig davon.
+                  {t('auth.marketingConsentNote')}
                 </Typography>
               </Box>
 
@@ -218,9 +219,7 @@ export default function RegisterPage() {
                   }
                   label={
                     <Typography variant="body2">
-                      Ich habe die{' '}
-                      <Link href="/agb" target="_blank" style={{ fontWeight: 600 }}>AGB</Link>
-                      {' '}gelesen und stimme ihnen zu. *
+                      {t('auth.agbAccepted')}
                     </Typography>
                   }
                 />
@@ -231,10 +230,10 @@ export default function RegisterPage() {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setStep(0)} disabled={loading}>
-                  Zurück
+                  {t('common.back')}
                 </Button>
                 <Button type="submit" variant="contained" size="large" fullWidth disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <PersonAddIcon />}>
-                  {loading ? 'Registrieren…' : 'Konto erstellen'}
+                  {loading ? t('auth.registerLoading') : t('auth.registerButton')}
                 </Button>
               </Box>
             </Box>
@@ -242,8 +241,8 @@ export default function RegisterPage() {
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="body2" align="center">
-            Bereits ein Konto?{' '}
-            <Link href="/login" style={{ fontWeight: 600, textDecoration: 'none' }}>Anmelden</Link>
+            {t('auth.alreadyAccount')}{' '}
+            <Link href="/login" style={{ fontWeight: 600, textDecoration: 'none' }}>{t('auth.loginLink')}</Link>
           </Typography>
         </CardContent>
       </Card>

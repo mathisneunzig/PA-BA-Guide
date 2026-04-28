@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { LoanStatus } from '@prisma/client'
 import { Button } from '@mui/material'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -13,6 +14,7 @@ interface Props {
 
 export default function LoanActions({ itemId, status }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   if (status !== 'RESERVED') return null
@@ -37,7 +39,7 @@ export default function LoanActions({ itemId, status }: Props) {
       startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
       sx={{ flexShrink: 0, fontSize: 11, py: 0.25 }}
     >
-      {loading ? '…' : 'Stornieren'}
+      {loading ? t('loans.cancelling') : t('loans.cancel')}
     </Button>
   )
 }

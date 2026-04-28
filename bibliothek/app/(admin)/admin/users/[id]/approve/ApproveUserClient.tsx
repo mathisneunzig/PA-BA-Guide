@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, Chip, CircularProgress,
   Container, Divider, Grid, Typography,
@@ -46,6 +47,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function ApproveUserClient({ user }: { user: User }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState<'student' | 'guest' | 'delete' | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -61,33 +63,33 @@ export default function ApproveUserClient({ user }: { user: User }) {
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Fehler')
+        setError(d.error ?? t('common.error'))
       } else {
-        setSuccess(role === 'STUDENT' ? 'Nutzer wurde als Student freigeschaltet.' : 'Nutzer bleibt als Gast.')
+        setSuccess(role === 'STUDENT' ? t('admin.users.approvedSuccess') : t('admin.users.guestSuccess'))
         setTimeout(() => router.push('/admin/users'), 1500)
       }
     } catch {
-      setError('Netzwerkfehler')
+      setError(t('common.networkError'))
     } finally {
       setLoading(null)
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Nutzer „${user.username}" wirklich löschen?`)) return
+    if (!confirm(t('admin.users.deleteConfirm', { username: user.username }))) return
     setLoading('delete')
     setError('')
     try {
       const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Fehler beim Löschen')
+        setError(d.error ?? t('admin.users.deleteError'))
       } else {
-        setSuccess('Nutzer wurde gelöscht.')
+        setSuccess(t('admin.users.deletedSuccess'))
         setTimeout(() => router.push('/admin/users'), 1500)
       }
     } catch {
-      setError('Netzwerkfehler')
+      setError(t('common.networkError'))
     } finally {
       setLoading(null)
     }
@@ -99,14 +101,14 @@ export default function ApproveUserClient({ user }: { user: User }) {
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Button component={Link} href="/admin/users" startIcon={<ArrowBackIcon />} sx={{ mb: 3 }} variant="text" color="inherit">
-        Zurück zur Nutzerliste
+        {t('admin.users.backToList')}
       </Button>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <PeopleIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Nutzer prüfen</Typography>
-          <Typography variant="body2" color="text.secondary">Registrierung freigeben oder ablehnen</Typography>
+          <Typography variant="h5">{t('admin.users.approveTitle')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('admin.users.approveSubtitle')}</Typography>
         </Box>
       </Box>
 
@@ -116,7 +118,7 @@ export default function ApproveUserClient({ user }: { user: User }) {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Nutzerdaten</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('admin.users.userData')}</Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Chip
                 label={user.role}
@@ -124,25 +126,25 @@ export default function ApproveUserClient({ user }: { user: User }) {
                 size="small"
               />
               {user.email_verified
-                ? <Chip icon={<VerifiedIcon />} label="E-Mail bestätigt" color="success" size="small" variant="outlined" />
-                : <Chip icon={<WarningAmberIcon />} label="Nicht bestätigt" color="warning" size="small" variant="outlined" />}
+                ? <Chip icon={<VerifiedIcon />} label={t('admin.users.emailVerified')} color="success" size="small" variant="outlined" />
+                : <Chip icon={<WarningAmberIcon />} label={t('admin.users.emailNotVerified')} color="warning" size="small" variant="outlined" />}
             </Box>
           </Box>
           <Divider sx={{ mb: 2 }} />
           <Grid container spacing={1}>
-            <Row label="Name" value={fullName} />
-            <Row label="Benutzername" value={<span style={{ fontFamily: 'monospace' }}>{user.username}</span>} />
-            <Row label="E-Mail" value={user.email} />
-            <Row label="Telefon" value={user.phone} />
-            <Row label="Adresse" value={address} />
-            <Row label="Registriert" value={new Date(user.createdAt).toLocaleString('de-DE')} />
+            <Row label={t('common.name')} value={fullName} />
+            <Row label={t('admin.users.colUsername')} value={<span style={{ fontFamily: 'monospace' }}>{user.username}</span>} />
+            <Row label={t('common.email')} value={user.email} />
+            <Row label={t('common.phone')} value={user.phone} />
+            <Row label={t('common.address')} value={address} />
+            <Row label={t('admin.users.registeredAt')} value={new Date(user.createdAt).toLocaleString('de-DE')} />
           </Grid>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Entscheidung</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>{t('admin.users.decision')}</Typography>
           <Divider sx={{ mb: 2 }} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Button
@@ -154,7 +156,7 @@ export default function ApproveUserClient({ user }: { user: User }) {
               onClick={() => setRole('STUDENT')}
               fullWidth
             >
-              {user.role === 'STUDENT' ? 'Bereits Student' : 'Als Student freischalten'}
+              {user.role === 'STUDENT' ? t('admin.users.alreadyStudent') : t('admin.users.approveAsStudent')}
             </Button>
             <Button
               variant="outlined"
@@ -165,7 +167,7 @@ export default function ApproveUserClient({ user }: { user: User }) {
               onClick={() => setRole('GUEST')}
               fullWidth
             >
-              Als Gast belassen
+              {t('admin.users.keepAsGuest')}
             </Button>
             <Divider />
             <Button
@@ -177,7 +179,7 @@ export default function ApproveUserClient({ user }: { user: User }) {
               onClick={handleDelete}
               fullWidth
             >
-              Konto ablehnen &amp; löschen
+              {t('admin.users.deleteAccount')}
             </Button>
           </Box>
         </CardContent>

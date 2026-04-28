@@ -9,24 +9,26 @@ import {
 import BugReportIcon from '@mui/icons-material/BugReport'
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
-
-const CATEGORIES = [
-  { value: 'BUG', label: 'Fehler / Bug' },
-  { value: 'IMPROVEMENT', label: 'Verbesserungsvorschlag' },
-  { value: 'QUESTION', label: 'Frage' },
-  { value: 'OTHER', label: 'Sonstiges' },
-]
-
-const SEVERITIES = [
-  { value: 'LOW', label: 'Niedrig — kleinere Unannehmlichkeit' },
-  { value: 'MEDIUM', label: 'Mittel — beeinträchtigt die Nutzung' },
-  { value: 'HIGH', label: 'Hoch — App nicht nutzbar' },
-]
+import { useTranslation } from 'react-i18next'
 
 export default function FeedbackButton() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const { t } = useTranslation()
   const isLoggedIn = status === 'authenticated' && !!session?.user
+
+  const CATEGORIES = [
+    { value: 'BUG', label: t('feedback.categoryBug') },
+    { value: 'IMPROVEMENT', label: t('feedback.categoryImprovement') },
+    { value: 'QUESTION', label: t('feedback.categoryQuestion') },
+    { value: 'OTHER', label: t('feedback.categoryOther') },
+  ]
+
+  const SEVERITIES = [
+    { value: 'LOW', label: t('feedback.severityLow') },
+    { value: 'MEDIUM', label: t('feedback.severityMedium') },
+    { value: 'HIGH', label: t('feedback.severityHigh') },
+  ]
 
   const [open, setOpen] = useState(false)
   const [description, setDescription] = useState('')
@@ -45,7 +47,6 @@ export default function FeedbackButton() {
   function handleClose() {
     if (submitting) return
     setOpen(false)
-    // Reset after close animation
     setTimeout(() => {
       setDescription('')
       setCategory('BUG')
@@ -57,7 +58,7 @@ export default function FeedbackButton() {
 
   async function handleSubmit() {
     if (!description.trim() || description.trim().length < 10) {
-      setError('Bitte beschreibe das Problem genauer (min. 10 Zeichen).')
+      setError(t('feedback.tooShort'))
       return
     }
     setSubmitting(true)
@@ -75,11 +76,11 @@ export default function FeedbackButton() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error ?? 'Unbekannter Fehler')
+        throw new Error(data?.error ?? t('feedback.unknownError'))
       }
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Senden')
+      setError(err instanceof Error ? err.message : t('feedback.sendError'))
     } finally {
       setSubmitting(false)
     }
@@ -87,7 +88,7 @@ export default function FeedbackButton() {
 
   return (
     <>
-      <Tooltip title="Feedback / Problem melden" placement="left" arrow>
+      <Tooltip title={t('feedback.tooltip')} placement="left" arrow>
         <Fab
           size="small"
           color="default"
@@ -109,11 +110,9 @@ export default function FeedbackButton() {
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
-          Problem melden
+          {t('feedback.title')}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
-            {isLoggedIn
-              ? 'Beschreibe das Problem so genau wie möglich.'
-              : 'Du bist nicht angemeldet. Du kannst trotzdem eine kurze Rückmeldung hinterlassen.'}
+            {isLoggedIn ? t('feedback.describeProblem') : t('feedback.describeNotLoggedIn')}
           </Typography>
         </DialogTitle>
 
@@ -121,7 +120,7 @@ export default function FeedbackButton() {
           {success ? (
             <Box sx={{ py: 2 }}>
               <Alert severity="success" sx={{ mb: 2 }}>
-                Danke für dein Feedback! Wir schauen uns das an.
+                {t('feedback.success')}
               </Alert>
             </Box>
           ) : (
@@ -131,10 +130,10 @@ export default function FeedbackButton() {
               {isLoggedIn && (
                 <>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Kategorie</InputLabel>
+                    <InputLabel>{t('feedback.categoryLabel')}</InputLabel>
                     <Select
                       value={category}
-                      label="Kategorie"
+                      label={t('feedback.categoryLabel')}
                       onChange={(e) => setCategory(e.target.value)}
                     >
                       {CATEGORIES.map((c) => (
@@ -144,10 +143,10 @@ export default function FeedbackButton() {
                   </FormControl>
 
                   <FormControl fullWidth size="small">
-                    <InputLabel>Schweregrad</InputLabel>
+                    <InputLabel>{t('feedback.severityLabel')}</InputLabel>
                     <Select
                       value={severity}
-                      label="Schweregrad"
+                      label={t('feedback.severityLabel')}
                       onChange={(e) => setSeverity(e.target.value)}
                     >
                       {SEVERITIES.map((s) => (
@@ -160,17 +159,13 @@ export default function FeedbackButton() {
 
               <FormControl fullWidth>
                 <TextField
-                  label="Was ist das Problem?"
+                  label={t('feedback.describeLabel')}
                   multiline
                   minRows={isLoggedIn ? 4 : 5}
                   maxRows={10}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder={
-                    isLoggedIn
-                      ? 'z.B. „Beim Reservieren eines Buches erscheint ein Fehler, obwohl Exemplare verfügbar sind."'
-                      : 'Beschreibe kurz, was nicht funktioniert oder was du dir wünschst …'
-                  }
+                  placeholder={isLoggedIn ? t('feedback.placeholder1') : t('feedback.placeholder2')}
                   slotProps={{ htmlInput: { maxLength: 2000 } }}
                 />
                 <FormHelperText sx={{ textAlign: 'right' }}>
@@ -180,7 +175,7 @@ export default function FeedbackButton() {
 
               {pathname && (
                 <Typography variant="caption" color="text.disabled">
-                  Seite: {pathname}
+                  {t('feedback.page', { path: pathname })}
                 </Typography>
               )}
             </Box>
@@ -189,17 +184,17 @@ export default function FeedbackButton() {
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
           {success ? (
-            <Button onClick={handleClose} variant="contained">Schließen</Button>
+            <Button onClick={handleClose} variant="contained">{t('common.close')}</Button>
           ) : (
             <>
-              <Button onClick={handleClose} disabled={submitting} color="inherit">Abbrechen</Button>
+              <Button onClick={handleClose} disabled={submitting} color="inherit">{t('common.cancel')}</Button>
               <Button
                 onClick={handleSubmit}
                 variant="contained"
                 disabled={submitting || description.trim().length < 10}
                 startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
               >
-                {submitting ? 'Wird gesendet …' : 'Senden'}
+                {submitting ? t('common.sending') : t('common.send')}
               </Button>
             </>
           )}

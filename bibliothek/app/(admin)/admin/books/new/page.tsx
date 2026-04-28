@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, CircularProgress,
   Container, Divider, Grid, TextField, Typography,
@@ -18,6 +19,7 @@ import QuickPrintDialog from '@/app/components/QuickPrintDialog'
 
 export default function NewBookPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [form, setForm] = useState({
     isbn: '', title: '', author: '', publisher: '', year: '',
     language: 'de', totalCopies: '1', loanDurationWeeks: '13',
@@ -69,7 +71,7 @@ export default function NewBookPage() {
       }))
       // Auto-populate tags from API metadata
       if (data.tags) {
-        const suggested = data.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+        const suggested = data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
         if (suggested.length > 0) setTags(suggested)
       }
     } finally {
@@ -108,9 +110,9 @@ export default function NewBookPage() {
         if (err && typeof err === 'object') {
           const fieldMsgs = Object.entries(err.fieldErrors ?? {})
             .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
-          setError([...(err.formErrors ?? []), ...fieldMsgs].join(' | ') || 'Fehler beim Erstellen')
+          setError([...(err.formErrors ?? []), ...fieldMsgs].join(' | ') || t('admin.books.createError'))
         } else {
-          setError(err ?? 'Fehler beim Erstellen')
+          setError(err ?? t('admin.books.createError'))
         }
       }
       else setCreatedBarcode(data.id)
@@ -138,9 +140,9 @@ export default function NewBookPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <MenuBookIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Buch hinzufügen</Typography>
+          <Typography variant="h5">{t('admin.books.newTitle')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            <Link href="/admin/books" style={{ color: 'inherit' }}>← Zurück zur Übersicht</Link>
+            <Link href="/admin/books" style={{ color: 'inherit' }}>{t('admin.books.backToOverview')}</Link>
           </Typography>
         </Box>
       </Box>
@@ -149,12 +151,12 @@ export default function NewBookPage() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>ISBN Auto-Fill</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('admin.books.isbnAutoFill')}</Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
               value={form.isbn}
               onChange={(e) => set('isbn', e.target.value)}
-              placeholder="ISBN-13 eingeben…"
+              placeholder={t('admin.books.isbnPlaceholder')}
               size="small"
               sx={{ flex: 1, '& input': { fontFamily: 'monospace' } }}
             />
@@ -164,7 +166,7 @@ export default function NewBookPage() {
               variant="outlined"
               startIcon={lookupLoading ? <CircularProgress size={16} /> : <SearchIcon />}
             >
-              {lookupLoading ? 'Suche…' : 'Auto-Fill'}
+              {lookupLoading ? t('common.search') : t('admin.books.autoFill')}
             </Button>
           </Box>
         </CardContent>
@@ -173,30 +175,30 @@ export default function NewBookPage() {
       <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Card>
           <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Buchdetails</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('admin.books.bookDetails')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 8 }}>{tf('Titel *', 'title', true)}</Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>{tf('Jahr', 'year', false, 'number')}</Grid>
+              <Grid size={{ xs: 12, sm: 8 }}>{tf(t('admin.books.titleField'), 'title', true)}</Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>{tf(t('admin.books.yearField'), 'year', false, 'number')}</Grid>
               <Grid size={{ xs: 12, sm: 8 }}>
                 <TextField
-                  label="Autor *"
+                  label={t('admin.books.authorField')}
                   name="author"
                   value={form.author}
                   onChange={(e) => set('author', e.target.value)}
                   required
                   fullWidth
                   size="small"
-                  helperText="Format: Nachname, Vorname (wird beim Auto-Fill automatisch normalisiert)"
+                  helperText={t('admin.books.authorHelper')}
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>{tf('Sprache', 'language')}</Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Verlag', 'publisher')}</Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Anzahl Exemplare', 'totalCopies', true, 'number')}</Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>{tf(t('admin.books.languageField'), 'language')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.publisherField'), 'publisher')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.copiesField'), 'totalCopies', true, 'number')}</Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <HauptkategoriePicker value={form.hauptkategorie} onChange={handleHauptkategorieChange} />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Regalnummer', 'regalnummer')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.shelfField'), 'regalnummer')}</Grid>
               <Grid size={12}>
                 <ThemengebietPicker selected={tags} onChange={setTags} />
               </Grid>
@@ -205,7 +207,7 @@ export default function NewBookPage() {
               </Grid>
               <Grid size={12}>
                 <TextField
-                  label="Beschreibung"
+                  label={t('admin.books.descriptionField')}
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
                   multiline
@@ -223,10 +225,10 @@ export default function NewBookPage() {
 
         <Card>
           <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Ausleihe</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('admin.books.loanSection')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid size={6}>{tf('Max. Ausleihdauer (Wochen)', 'loanDurationWeeks', true, 'number')}</Grid>
+              <Grid size={6}>{tf(t('admin.books.maxDurationField'), 'loanDurationWeeks', true, 'number')}</Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -239,7 +241,7 @@ export default function NewBookPage() {
           startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />}
           sx={{ alignSelf: 'flex-start', px: 4 }}
         >
-          {loading ? 'Erstelle…' : 'Buch erstellen'}
+          {loading ? t('admin.books.creating') : t('admin.books.createButton')}
         </Button>
       </Box>
 

@@ -14,37 +14,45 @@ const VALID_TEMPLATES: BroadcastTemplate[] = [
   'broadcast-newbooks',
 ]
 
+const SUPPORTED_LOCALES = ['de', 'en', 'fr', 'es'] as const
+type Locale = typeof SUPPORTED_LOCALES[number]
+
 /**
  * POST /api/admin/broadcast/preview
- * Body: { subject, message, template, timeFrom?, timeTo?, sendTest?: boolean }
+ * Body: { subjects, messages, template, timeFrom?, timeTo?, sendTest?, previewLocale? }
  *
- * If sendTest is false/missing: returns rendered HTML for display in browser.
+ * If sendTest is false/missing: returns rendered HTML for the previewLocale (default 'de').
  * If sendTest is true: sends to the test email list from Config("broadcast_test_emails").
  */
 export async function POST(request: NextRequest) {
   await requireRole('ADMIN')
 
   const body = await request.json()
-  const { subject, message, template, timeFrom, timeTo, sendTest } = body as {
-    subject: string
-    message: string
+  const { subjects, messages, template, timeFrom, timeTo, sendTest, previewLocale } = body as {
+    subjects: Record<Locale, string>
+    messages: Record<Locale, string>
     template: BroadcastTemplate
     timeFrom?: string
     timeTo?: string
     sendTest?: boolean
+    previewLocale?: Locale
   }
 
-  if (!subject?.trim() || !message?.trim()) {
-    return NextResponse.json({ error: 'Betreff und Nachricht erforderlich' }, { status: 400 })
+  const locale: Locale = (SUPPORTED_LOCALES.includes(previewLocale as Locale) ? previewLocale : 'de') as Locale
+  const subject = subjects?.[locale]?.trim() || subjects?.['de']?.trim() || ''
+  const message = messages?.[locale]?.trim() || messages?.['de']?.trim() || ''
+
+  if (!subject || !message) {
+    return NextResponse.json({ error: 'Subject and message required' }, { status: 400 })
   }
   if (!VALID_TEMPLATES.includes(template)) {
-    return NextResponse.json({ error: 'Ungültige Vorlage' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid template' }, { status: 400 })
   }
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const html = renderTemplate(template, {
-    subject: subject.trim(),
-    message: message.trim(),
+    subject,
+    message,
     timeFrom: timeFrom?.trim() ?? undefined,
     timeTo: timeTo?.trim() ?? undefined,
     catalogUrl: `${APP_URL}/books`,
@@ -61,7 +69,7 @@ export async function POST(request: NextRequest) {
     : []
 
   if (testEmails.length === 0) {
-    return NextResponse.json({ error: 'Keine Test-E-Mails konfiguriert. Bitte unter Einstellungen eintragen.' }, { status: 400 })
+    return NextResponse.json({ error: 'No test emails configured. Please add them in Settings.' }, { status: 400 })
   }
 
   let sent = 0
@@ -72,8 +80,8 @@ export async function POST(request: NextRequest) {
     try {
       await sendBroadcastEmail({
         to: email,
-        subject: `[TESTMAIL] ${subject.trim()}`,
-        message: message.trim(),
+        subject: `[TESTMAIL] ${subject}`,
+        message,
         template,
         timeFrom: timeFrom?.trim() || undefined,
         timeTo: timeTo?.trim() || undefined,

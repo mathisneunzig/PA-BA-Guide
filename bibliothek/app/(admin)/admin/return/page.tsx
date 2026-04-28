@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Autocomplete, Box, Button, Card, CardContent, Chip,
   CircularProgress, Container, Divider, IconButton, Stack,
@@ -37,6 +38,7 @@ interface ReturnResult {
 }
 
 function ReturnForm() {
+  const { t } = useTranslation()
   const [users, setUsers] = useState<UserOption[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<UserOption | null>(null)
@@ -80,7 +82,7 @@ function ReturnForm() {
         b.input === input
           ? result
             ? { ...b, ...result, resolving: false }
-            : { ...b, resolving: false, error: 'Buch nicht gefunden' }
+            : { ...b, resolving: false, error: t('admin.return.bookNotFound') }
           : b
       )
     )
@@ -92,9 +94,9 @@ function ReturnForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedUser) { setSubmitError('Bitte Nutzer auswählen'); return }
+    if (!selectedUser) { setSubmitError(t('admin.return.noUser')); return }
     const validBooks = books.filter((b) => b.barcode && !b.error)
-    if (validBooks.length === 0) { setSubmitError('Keine gültigen Bücher eingetragen'); return }
+    if (validBooks.length === 0) { setSubmitError(t('admin.return.noBooks')); return }
 
     setSubmitError('')
     setSubmitting(true)
@@ -112,7 +114,7 @@ function ReturnForm() {
     setSubmitting(false)
 
     if (!res.ok) {
-      setSubmitError(data.error ?? 'Fehler bei der Rückgabe')
+      setSubmitError(data.error ?? t('admin.return.returnError'))
     } else {
       setResults(data.results)
       // Remove successfully returned books from the list
@@ -132,7 +134,7 @@ function ReturnForm() {
       {/* Results */}
       {results && (
         <Alert severity={results.every((r) => r.ok) ? 'success' : 'warning'} onClose={() => setResults(null)}>
-          {results.filter((r) => r.ok).length} von {results.length} Bücher erfolgreich zurückgegeben.
+          {t('admin.return.success', { valid: results.filter((r) => r.ok).length, total: results.length })}
           {results.filter((r) => !r.ok).map((r) => (
             <Box key={r.bookId} sx={{ mt: 0.5, fontSize: 13 }}>
               <strong>{r.bookId}</strong>: {r.error}
@@ -146,7 +148,7 @@ function ReturnForm() {
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
             <PersonIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Nutzer auswählen</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{t('admin.return.selectUser')}</Typography>
           </Box>
           <Autocomplete
             options={users}
@@ -170,9 +172,9 @@ function ReturnForm() {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Nutzer"
+                label={t('admin.return.userLabel')}
                 size="small"
-                placeholder="Name oder E-Mail suchen…"
+                placeholder={t('admin.return.userPlaceholder')}
               />
             )}
           />
@@ -193,23 +195,23 @@ function ReturnForm() {
       <Card>
         <CardContent>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Bücher einscannen / eintragen
+            {t('admin.return.scanBooks')}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            EAN-13 Barcode oder Regalnummer (z.B. SAP0001). Enter oder Button zum Hinzufügen.
+            {t('admin.return.scanHint')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
             <TextField
               value={bookInput}
               onChange={(e) => setBookInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBook() } }}
-              placeholder="EAN-13 oder Regalnummer…"
+              placeholder={t('admin.return.scanPlaceholder')}
               size="small"
               sx={{ flex: 1, '& input': { fontFamily: 'monospace' } }}
               autoFocus
             />
             <Button variant="outlined" startIcon={<AddIcon />} onClick={addBook} disabled={!bookInput.trim()}>
-              Hinzufügen
+              {t('common.add')}
             </Button>
           </Box>
 
@@ -254,7 +256,7 @@ function ReturnForm() {
                       </Stack>
                     </Box>
 
-                    <Tooltip title="Entfernen">
+                    <Tooltip title={t('admin.return.removeTooltip')}>
                       <IconButton size="small" onClick={() => removeBook(book.input)} color="error">
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -277,22 +279,25 @@ function ReturnForm() {
         sx={{ alignSelf: 'flex-start', px: 4 }}
       >
         {submitting
-          ? 'Verarbeite…'
-          : `${validBookCount} Buch${validBookCount !== 1 ? 'er' : ''} zurückgeben`}
+          ? t('admin.return.processing')
+          : validBookCount === 1
+            ? t('admin.return.returnButton', { count: validBookCount })
+            : t('admin.return.returnButtonPlural', { count: validBookCount })}
       </Button>
     </Box>
   )
 }
 
 export default function ReturnBooksPage() {
+  const { t } = useTranslation()
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <AssignmentReturnIcon sx={{ fontSize: 36, color: 'success.main' }} />
         <Box>
-          <Typography variant="h5">Bücher zurückgeben</Typography>
+          <Typography variant="h5">{t('admin.return.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Nutzer auswählen, Bücher scannen / eintragen, bestätigen.
+            {t('admin.return.subtitle')}
           </Typography>
         </Box>
       </Box>

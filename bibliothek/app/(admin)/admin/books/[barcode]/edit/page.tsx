@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, CircularProgress,
   Container, Divider, Grid, TextField, Typography,
@@ -17,6 +18,7 @@ import PrintLabelButtons from '@/app/components/PrintLabelButtons'
 
 export default function EditBookPage({ params }: { params: Promise<{ barcode: string }> }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [barcode, setBarcode] = useState('')
   const [form, setForm] = useState({
     title: '', author: '', publisher: '', year: '',
@@ -50,7 +52,7 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
             regalnummer: book.regalnummer ?? '',
           })
           if (book.tags) {
-            setTags(book.tags.split(',').map((t: string) => t.trim()).filter(Boolean))
+            setTags(book.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean))
           }
           if (book.programmiersprachen) {
             setProgrammiersprachen(book.programmiersprachen.split(',').map((l: string) => l.trim()).filter(Boolean))
@@ -102,7 +104,7 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
         }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.error ?? 'Aktualisierung fehlgeschlagen')
+      if (!res.ok) setError(data.error ?? t('admin.books.updateFailed'))
       else router.push('/admin/books')
     } finally {
       setLoading(false)
@@ -136,11 +138,11 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <EditIcon sx={{ fontSize: 36, color: 'primary.main' }} />
           <Box>
-            <Typography variant="h5">Buch bearbeiten</Typography>
+            <Typography variant="h5">{t('admin.books.editTitle')}</Typography>
             <Typography variant="caption" sx={{ fontFamily: 'monospace' }} color="text.secondary">{barcode}</Typography>
             <br />
             <Typography variant="body2" color="text.secondary">
-              <Link href="/admin/books" style={{ color: 'inherit' }}>← Zurück zur Übersicht</Link>
+              <Link href="/admin/books" style={{ color: 'inherit' }}>{t('admin.books.backToOverview')}</Link>
             </Typography>
           </Box>
         </Box>
@@ -152,19 +154,19 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
       <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Card>
           <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Buchdetails</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('admin.books.bookDetails')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 8 }}>{tf('Titel *', 'title', true)}</Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>{tf('Jahr', 'year', false, 'number')}</Grid>
-              <Grid size={{ xs: 12, sm: 8 }}>{tf('Autor *', 'author', true)}</Grid>
-              <Grid size={{ xs: 12, sm: 4 }}>{tf('Sprache', 'language')}</Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Verlag', 'publisher')}</Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Anzahl Exemplare', 'totalCopies', true, 'number')}</Grid>
+              <Grid size={{ xs: 12, sm: 8 }}>{tf(t('admin.books.titleField'), 'title', true)}</Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>{tf(t('admin.books.yearField'), 'year', false, 'number')}</Grid>
+              <Grid size={{ xs: 12, sm: 8 }}>{tf(t('admin.books.authorField'), 'author', true)}</Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>{tf(t('admin.books.languageField'), 'language')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.publisherField'), 'publisher')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.copiesField'), 'totalCopies', true, 'number')}</Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <HauptkategoriePicker value={form.hauptkategorie} onChange={handleHauptkategorieChange} />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>{tf('Regalnummer', 'regalnummer')}</Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>{tf(t('admin.books.shelfField'), 'regalnummer')}</Grid>
               <Grid size={12}>
                 <ThemengebietPicker selected={tags} onChange={setTags} />
               </Grid>
@@ -173,7 +175,7 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
               </Grid>
               <Grid size={12}>
                 <TextField
-                  label="Beschreibung"
+                  label={t('admin.books.descriptionField')}
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
                   multiline
@@ -191,10 +193,10 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
 
         <Card>
           <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Ausleihe</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('admin.books.loanSection')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
-              <Grid size={6}>{tf('Max. Ausleihdauer (Wochen)', 'loanDurationWeeks', true, 'number')}</Grid>
+              <Grid size={6}>{tf(t('admin.books.maxDurationField'), 'loanDurationWeeks', true, 'number')}</Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -207,7 +209,7 @@ export default function EditBookPage({ params }: { params: Promise<{ barcode: st
           startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
           sx={{ alignSelf: 'flex-start', px: 4 }}
         >
-          {loading ? 'Speichere…' : 'Änderungen speichern'}
+          {loading ? t('admin.books.saving') : t('common.saveChanges')}
         </Button>
       </Box>
     </Container>

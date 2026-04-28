@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardContent, CircularProgress,
   Container, Divider, FormControlLabel, IconButton, InputAdornment,
@@ -21,15 +22,16 @@ import CartTimer from '@/app/components/CartTimer'
 
 type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING'
 
-const HANDOVER_OPTIONS: { value: HandoverMethod; label: string; icon: React.ReactNode; description: string }[] = [
-  { value: 'PICKUP',       label: 'Abholung',  icon: <MeetingRoomIcon fontSize="small" />,   description: 'Ich hole das Buch bei Mathis ab' },
-  { value: 'MEETINGPOINT', label: 'Treffpunkt', icon: <PinDropIcon fontSize="small" />,       description: 'Wir vereinbaren einen Treffpunkt' },
-  { value: 'SHIPPING',     label: 'Zusenden',   icon: <LocalShippingIcon fontSize="small" />, description: 'Buch wird zugeschickt (zzgl. Versandkosten)' },
-]
-
 export default function CartPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { items, remove, clear } = useCart()
+
+  const HANDOVER_OPTIONS: { value: HandoverMethod; label: string; icon: React.ReactNode; description: string }[] = [
+    { value: 'PICKUP',       label: t('cart.handoverPickup'),       icon: <MeetingRoomIcon fontSize="small" />,   description: t('cart.handoverPickupDesc') },
+    { value: 'MEETINGPOINT', label: t('cart.handoverMeetingpoint'), icon: <PinDropIcon fontSize="small" />,       description: t('cart.handoverMeetingpointDesc') },
+    { value: 'SHIPPING',     label: t('cart.handoverShipping'),     icon: <LocalShippingIcon fontSize="small" />, description: t('cart.handoverShippingDesc') },
+  ]
 
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [durationWeeks, setDurationWeeks] = useState(13)
@@ -77,7 +79,7 @@ export default function CartPage() {
 
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
-      setSubmitError(d.error ? (typeof d.error === 'string' ? d.error : JSON.stringify(d.error)) : 'Fehler beim Reservieren')
+      setSubmitError(d.error ? (typeof d.error === 'string' ? d.error : JSON.stringify(d.error)) : t('cart.error'))
     } else {
       clear()
       setDone(true)
@@ -89,7 +91,7 @@ export default function CartPage() {
     return (
       <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
         <Alert severity="success" sx={{ mb: 2 }}>
-          Reservierung erfolgreich erstellt! Weiterleitung…
+          {t('cart.success')}
         </Alert>
       </Container>
     )
@@ -100,9 +102,9 @@ export default function CartPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <ShoppingCartIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h5">Warenkorb</Typography>
+          <Typography variant="h5">{t('cart.title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            {items.length} Buch{items.length !== 1 ? 'er' : ''} zur Reservierung
+            {items.length === 1 ? t('cart.subtitle', { count: items.length }) : t('cart.subtitlePlural', { count: items.length })}
           </Typography>
         </Box>
       </Box>
@@ -111,8 +113,8 @@ export default function CartPage() {
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <ShoppingCartIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 1 }} />
-            <Typography color="text.secondary" gutterBottom>Dein Warenkorb ist leer.</Typography>
-            <Button href="/books" variant="outlined" sx={{ mt: 1 }}>Zum Katalog</Button>
+            <Typography color="text.secondary" gutterBottom>{t('cart.empty')}</Typography>
+            <Button href="/books" variant="outlined" sx={{ mt: 1 }}>{t('cart.toCatalog')}</Button>
           </CardContent>
         </Card>
       ) : (
@@ -126,7 +128,7 @@ export default function CartPage() {
           <Card>
             <CardContent>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
-                Ausgewählte Bücher
+                {t('cart.selectedBooks')}
               </Typography>
               <Stack spacing={1} sx={{ mt: 1 }}>
                 {items.map((book) => (
@@ -153,7 +155,7 @@ export default function CartPage() {
                 ))}
               </Stack>
               <Button size="small" color="error" onClick={clear} sx={{ mt: 1 }}>
-                Alle entfernen
+                {t('cart.removeAll')}
               </Button>
             </CardContent>
           </Card>
@@ -162,12 +164,12 @@ export default function CartPage() {
           <Card>
             <CardContent>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
-                Reservierungsdetails
+                {t('cart.reservationDetails')}
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField
-                  label="Abholdatum / Startdatum"
+                  label={t('cart.pickupDate')}
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -182,7 +184,7 @@ export default function CartPage() {
 
                 <Box>
                   <Typography variant="body2" gutterBottom>
-                    Ausleihdauer: <strong>{durationWeeks} Wochen</strong>
+                    {t('cart.duration', { weeks: durationWeeks })}
                   </Typography>
                   <Slider
                     value={durationWeeks}
@@ -192,13 +194,13 @@ export default function CartPage() {
                     valueLabelFormat={(v) => `${v} Wo.`}
                   />
                   <Typography variant="caption" color="text.secondary">
-                    Fällig am: {dueDate.toLocaleDateString('de-DE')}
+                    {t('cart.dueDate', { date: dueDate.toLocaleDateString() })}
                   </Typography>
                 </Box>
 
                 {/* Handover method */}
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Übergabeart *</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>{t('cart.handoverType')}</Typography>
                   <RadioGroup value={handoverMethod} onChange={(e) => setHandoverMethod(e.target.value as HandoverMethod)}>
                     {HANDOVER_OPTIONS.map((opt) => (
                       <FormControlLabel
@@ -221,7 +223,7 @@ export default function CartPage() {
 
                   {needsDate && (
                     <TextField
-                      label={handoverMethod === 'PICKUP' ? 'Abholdatum' : 'Treffpunkt-Datum'}
+                      label={handoverMethod === 'PICKUP' ? t('cart.pickupDateLabel') : t('cart.meetingDateLabel')}
                       type="date" value={handoverDate} onChange={(e) => setHandoverDate(e.target.value)}
                       size="small" fullWidth sx={{ mt: 1.5 }}
                       slotProps={{ htmlInput: { min: new Date().toISOString().slice(0, 10) }, inputLabel: { shrink: true } }}
@@ -229,15 +231,15 @@ export default function CartPage() {
                   )}
                   {needsLocation && (
                     <TextField
-                      label="Treffpunkt / Ort" value={handoverLocation}
+                      label={t('cart.meetingLocation')} value={handoverLocation}
                       onChange={(e) => setHandoverLocation(e.target.value)}
-                      placeholder="z.B. Bibliothek, Zimmer 205"
+                      placeholder={t('cart.meetingLocationPlaceholder')}
                       size="small" fullWidth sx={{ mt: 1.5 }}
                     />
                   )}
                   {needsCost && (
                     <TextField
-                      label="Versandkosten (€)" type="number" value={handoverCost}
+                      label={t('cart.shippingCost')} type="number" value={handoverCost}
                       onChange={(e) => setHandoverCost(e.target.value)}
                       size="small" sx={{ mt: 1.5, width: 200 }}
                       slotProps={{ htmlInput: { min: 0, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">€</InputAdornment> } }}
@@ -246,8 +248,9 @@ export default function CartPage() {
                 </Box>
 
                 <TextField
-                  label="Notizen (optional)" value={notes}
+                  label={t('common.notes')} value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t('common.notesPlaceholder')}
                   multiline rows={2} size="small"
                 />
               </Box>
@@ -261,11 +264,15 @@ export default function CartPage() {
             disabled={submitting || items.length === 0}
             startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <BookmarkAddIcon />}
           >
-            {submitting ? 'Reserviere…' : `${items.length} Buch${items.length !== 1 ? 'er' : ''} reservieren`}
+            {submitting ? t('cart.reserving') : (
+              items.length === 1 ? t('cart.reserveButton', { count: items.length }) : t('cart.reserveButtonPlural', { count: items.length })
+            )}
           </Button>
 
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-            Du kannst auch <Link href="/books" style={{ color: 'inherit' }}>weitere Bücher</Link> hinzufügen.
+            {t('cart.addMoreBooks').split('weitere Bücher')[0]}
+            <Link href="/books" style={{ color: 'inherit' }}>{t('nav.books').toLowerCase()}</Link>
+            {t('cart.addMoreBooks').split('weitere Bücher')[1] ?? ''}
           </Typography>
         </Box>
       )}

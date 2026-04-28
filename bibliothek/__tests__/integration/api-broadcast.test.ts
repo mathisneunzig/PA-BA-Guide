@@ -41,9 +41,12 @@ function makeReq(url: string, body: object): NextRequest {
   })
 }
 
+const VALID_SUBJECTS = { de: 'Test Betreff', en: 'Test Subject', fr: 'Sujet test', es: 'Asunto prueba' }
+const VALID_MESSAGES = { de: 'Test Nachricht', en: 'Test message', fr: 'Message test', es: 'Mensaje prueba' }
+
 const VALID_BODY = {
-  subject: 'Test Betreff',
-  message: 'Test Nachricht',
+  subjects: VALID_SUBJECTS,
+  messages: VALID_MESSAGES,
   template: 'broadcast-news' as const,
 }
 
@@ -53,14 +56,24 @@ beforeEach(() => {
 })
 
 describe('POST /api/admin/broadcast', () => {
-  it('returns 400 when subject is missing', async () => {
-    const req = makeReq('http://localhost/api/admin/broadcast', { message: 'x', template: 'broadcast-news' })
+  it('returns 400 when subjects missing', async () => {
+    const req = makeReq('http://localhost/api/admin/broadcast', { messages: VALID_MESSAGES, template: 'broadcast-news' })
     const res = await broadcast(req)
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 when message is missing', async () => {
-    const req = makeReq('http://localhost/api/admin/broadcast', { subject: 'x', template: 'broadcast-news' })
+  it('returns 400 when messages missing', async () => {
+    const req = makeReq('http://localhost/api/admin/broadcast', { subjects: VALID_SUBJECTS, template: 'broadcast-news' })
+    const res = await broadcast(req)
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 400 when German (DE) subject/message missing', async () => {
+    const req = makeReq('http://localhost/api/admin/broadcast', {
+      subjects: { de: '', en: 'Subject' },
+      messages: { de: '', en: 'Message' },
+      template: 'broadcast-news',
+    })
     const res = await broadcast(req)
     expect(res.status).toBe(400)
   })
@@ -74,7 +87,7 @@ describe('POST /api/admin/broadcast', () => {
   it('only sends to users with marketingConsent=true', async () => {
     // Returns only consenting users (filter is applied in DB query)
     prisma.user.findMany.mockResolvedValue([
-      { email: 'consenting@example.com' },
+      { email: 'consenting@example.com', preferredLocale: 'de' },
     ])
 
     const req = makeReq('http://localhost/api/admin/broadcast', VALID_BODY)
@@ -93,10 +106,27 @@ describe('POST /api/admin/broadcast', () => {
     )
   })
 
+  it('sends email in user preferredLocale', async () => {
+    prisma.user.findMany.mockResolvedValue([
+      { email: 'de@example.com', preferredLocale: 'de' },
+      { email: 'en@example.com', preferredLocale: 'en' },
+    ])
+
+    const req = makeReq('http://localhost/api/admin/broadcast', VALID_BODY)
+    await broadcast(req)
+
+    expect(sendBroadcastEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'de@example.com', subject: 'Test Betreff' }),
+    )
+    expect(sendBroadcastEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'en@example.com', subject: 'Test Subject' }),
+    )
+  })
+
   it('returns sent/failed counts', async () => {
     prisma.user.findMany.mockResolvedValue([
-      { email: 'a@example.com' },
-      { email: 'b@example.com' },
+      { email: 'a@example.com', preferredLocale: 'de' },
+      { email: 'b@example.com', preferredLocale: 'en' },
     ])
     sendBroadcastEmail.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('SMTP error'))
 
@@ -169,10 +199,10 @@ describe('POST /api/admin/broadcast/preview', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 400 when subject or message missing', async () => {
+  it('returns 400 when DE subject or message missing', async () => {
     const req = makeReq('http://localhost/api/admin/broadcast/preview', {
-      subject: '',
-      message: '',
+      subjects: { de: '', en: 'Subject' },
+      messages: { de: '', en: 'Message' },
       template: 'broadcast-news',
       sendTest: false,
     })

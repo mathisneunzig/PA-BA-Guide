@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box, Button, Chip, CircularProgress, Container, Dialog, DialogActions,
   DialogContent, DialogContentText, DialogTitle, IconButton,
@@ -34,6 +35,7 @@ interface Book {
 type PrintTarget = { barcode: string; title: string; mode: 'label' | 'shelf' }
 
 export default function AdminBooksPage() {
+  const { t } = useTranslation()
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
@@ -78,7 +80,7 @@ export default function AdminBooksPage() {
       setDeleteTarget(null)
     } else {
       const d = await res.json()
-      setDeleteError(d.error ?? 'Fehler beim Löschen')
+      setDeleteError(d.error ?? t('admin.books.deleteError'))
     }
   }
 
@@ -88,12 +90,12 @@ export default function AdminBooksPage() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <MenuBookIcon sx={{ fontSize: 36, color: 'primary.main' }} />
           <Box>
-            <Typography variant="h5">Bücher verwalten</Typography>
-            <Typography variant="body2" color="text.secondary">{books.length} Bücher</Typography>
+            <Typography variant="h5">{t('admin.books.title')}</Typography>
+            <Typography variant="body2" color="text.secondary">{t('admin.books.count', { count: books.length })}</Typography>
           </Box>
         </Box>
         <Button href="/admin/books/new" variant="contained" startIcon={<AddIcon />}>
-          Buch hinzufügen
+          {t('admin.books.addBook')}
         </Button>
       </Box>
 
@@ -106,13 +108,13 @@ export default function AdminBooksPage() {
         <Table size="small">
           <TableHead>
             <TableRow sx={{ '& th': { fontWeight: 600 } }}>
-              <TableCell sx={{ width: 52 }}>Cover</TableCell>
-              <TableCell>Titel / Autor</TableCell>
-              <TableCell>Regal</TableCell>
-              <TableCell>Barcode</TableCell>
-              <TableCell>Exemplare</TableCell>
-              <TableCell>Themengebiete</TableCell>
-              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Aktionen</TableCell>
+              <TableCell sx={{ width: 52 }}>{t('admin.books.cover')}</TableCell>
+              <TableCell>{t('admin.books.titleAuthor')}</TableCell>
+              <TableCell>{t('admin.books.shelf')}</TableCell>
+              <TableCell>{t('admin.books.barcode')}</TableCell>
+              <TableCell>{t('admin.books.copies')}</TableCell>
+              <TableCell>{t('admin.books.topics')}</TableCell>
+              <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{t('common.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -159,8 +161,8 @@ export default function AdminBooksPage() {
                 <TableCell>
                   {book.tags ? (
                     <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
-                      {book.tags.split(',').slice(0, 3).map((t) => (
-                        <Chip key={t} label={t.trim()} size="small" variant="outlined" />
+                      {book.tags.split(',').slice(0, 3).map((tag) => (
+                        <Chip key={tag} label={tag.trim()} size="small" variant="outlined" />
                       ))}
                     </Stack>
                   ) : (
@@ -168,17 +170,17 @@ export default function AdminBooksPage() {
                   )}
                 </TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                  <Tooltip title="Bearbeiten">
+                  <Tooltip title={t('admin.books.editTooltip')}>
                     <IconButton size="small" href={`/admin/books/${book.id}/edit`}>
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Label drucken">
+                  <Tooltip title={t('admin.books.printLabelTooltip')}>
                     <IconButton size="small" onClick={() => setPrintTarget({ barcode: book.id, title: book.title, mode: 'label' })}>
                       <LabelIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Schrankplatz drucken">
+                  <Tooltip title={t('admin.books.printShelfTooltip')}>
                     <IconButton
                       size="small"
                       onClick={() => setPrintTarget({ barcode: book.id, title: book.regalnummer ?? book.title, mode: 'shelf' })}
@@ -187,7 +189,7 @@ export default function AdminBooksPage() {
                       <ShelfIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={copied === book.id ? 'Kopiert!' : 'BibTeX kopieren'}>
+                  <Tooltip title={copied === book.id ? t('common.copied') : t('admin.books.bibtexTooltip')}>
                     <IconButton
                       size="small"
                       onClick={() => copyBibtex(book)}
@@ -196,7 +198,7 @@ export default function AdminBooksPage() {
                       <ContentCopyIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Löschen">
+                  <Tooltip title={t('admin.books.deleteTooltip')}>
                     <IconButton size="small" color="error" onClick={() => { setDeleteError(''); setDeleteTarget(book) }}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -207,7 +209,7 @@ export default function AdminBooksPage() {
             {books.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                  Noch keine Bücher vorhanden.
+                  {t('admin.books.empty')}
                 </TableCell>
               </TableRow>
             )}
@@ -228,19 +230,19 @@ export default function AdminBooksPage() {
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Buch löschen?</DialogTitle>
+        <DialogTitle>{t('admin.books.deleteConfirmTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            <strong>{deleteTarget?.title}</strong> wird unwiderruflich gelöscht. Bücher mit aktiven Ausleihen können nicht gelöscht werden.
+            <strong>{deleteTarget?.title}</strong> {t('admin.books.deleteConfirmText')}
           </DialogContentText>
           {deleteError && (
             <DialogContentText color="error" sx={{ mt: 1 }}>{deleteError}</DialogContentText>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>Abbrechen</Button>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>{t('common.cancel')}</Button>
           <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}>
-            {deleting ? 'Löschen…' : 'Löschen'}
+            {deleting ? t('common.deleting') : t('common.delete')}
           </Button>
         </DialogActions>
       </Dialog>
