@@ -1,17 +1,21 @@
+'use client'
+
 import { Box, Container, Divider, Typography } from '@mui/material'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 
 export default function ImpressumPage() {
+  const { t } = useTranslation()
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>Impressum</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>{t('impressum.title')}</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>
-        Angaben gemäß § 5 TMG
+        {t('impressum.subtitle')}
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Verantwortlich</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>{t('impressum.responsible')}</Typography>
           <Typography variant="body2">Mathis Neunzig</Typography>
           <Typography variant="body2">Unter den Weiden 5</Typography>
           <Typography variant="body2">68199 Mannheim</Typography>
@@ -20,7 +24,7 @@ export default function ImpressumPage() {
         <Divider />
 
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Kontakt</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>{t('impressum.contact')}</Typography>
           <Typography variant="body2" color="text.secondary">
             info@neunziglabs.de
           </Typography>
@@ -29,31 +33,25 @@ export default function ImpressumPage() {
         <Divider />
 
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Hinweis zur Verantwortlichkeit</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>{t('impressum.hinweis')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Dieses System ist ein internes Bibliotheksverwaltungssystem und nicht öffentlich
-            zugänglich. Es wird ausschließlich für den Einsatz an Bildungseinrichtungen
-            bereitgestellt.
+            {t('impressum.hinweisText')}
           </Typography>
         </Box>
 
         <Divider />
 
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>Haftung für Inhalte</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>{t('impressum.haftung')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Als Diensteanbieter bin ich gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen
-            Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG bin ich
-            als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde
-            Informationen zu überwachen oder nach Umständen zu forschen, die auf eine
-            rechtswidrige Tätigkeit hinweisen.
+            {t('impressum.haftungText')}
           </Typography>
         </Box>
       </Box>
 
       <Box sx={{ mt: 4 }}>
         <Link href="/" style={{ fontSize: 14, textDecoration: 'none', color: 'inherit' }}>
-          ← Zurück zur Startseite
+          {t('impressum.back')}
         </Link>
       </Box>
     </Container>

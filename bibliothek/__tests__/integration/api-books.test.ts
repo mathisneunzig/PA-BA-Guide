@@ -192,6 +192,66 @@ describe('PUT /api/books/[barcode]', () => {
     const json = await res.json()
     expect(json.title).toBe('Updated')
   })
+
+  it('adjusts availableCopies by delta when totalCopies increases', async () => {
+    requireRole.mockResolvedValue(ADMIN_SESSION)
+    // Book has totalCopies=1, availableCopies=1
+    prisma.book.findUnique.mockResolvedValue({ ...MOCK_BOOK, totalCopies: 1, availableCopies: 1 })
+    prisma.book.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...MOCK_BOOK, ...data }),
+    )
+
+    const req = makeReq('PUT', 'http://localhost/api/books/0209999999995', { totalCopies: 3 })
+    const res = await updateBook(req, { params: Promise.resolve({ barcode: '0209999999995' }) })
+    expect(res.status).toBe(200)
+
+    // delta = 3-1 = 2, so availableCopies should become 1+2=3
+    expect(prisma.book.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ totalCopies: 3, availableCopies: 3 }),
+      }),
+    )
+  })
+
+  it('adjusts availableCopies by delta when totalCopies decreases', async () => {
+    requireRole.mockResolvedValue(ADMIN_SESSION)
+    // Book has totalCopies=3, availableCopies=2 (1 on loan)
+    prisma.book.findUnique.mockResolvedValue({ ...MOCK_BOOK, totalCopies: 3, availableCopies: 2 })
+    prisma.book.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...MOCK_BOOK, ...data }),
+    )
+
+    const req = makeReq('PUT', 'http://localhost/api/books/0209999999995', { totalCopies: 2 })
+    const res = await updateBook(req, { params: Promise.resolve({ barcode: '0209999999995' }) })
+    expect(res.status).toBe(200)
+
+    // delta = 2-3 = -1, so availableCopies should become max(0, 2-1)=1
+    expect(prisma.book.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ totalCopies: 2, availableCopies: 1 }),
+      }),
+    )
+  })
+
+  it('does not override explicit availableCopies when provided', async () => {
+    requireRole.mockResolvedValue(ADMIN_SESSION)
+    prisma.book.findUnique.mockResolvedValue({ ...MOCK_BOOK, totalCopies: 1, availableCopies: 1 })
+    prisma.book.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...MOCK_BOOK, ...data }),
+    )
+
+    // Explicitly providing both fields
+    const req = makeReq('PUT', 'http://localhost/api/books/0209999999995', { totalCopies: 3, availableCopies: 2 })
+    const res = await updateBook(req, { params: Promise.resolve({ barcode: '0209999999995' }) })
+    expect(res.status).toBe(200)
+
+    // Should use explicitly provided availableCopies=2, not auto-calculated 3
+    expect(prisma.book.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ totalCopies: 3, availableCopies: 2 }),
+      }),
+    )
+  })
 })
 
 describe('DELETE /api/books/[barcode]', () => {

@@ -9,10 +9,11 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 import SortIcon from '@mui/icons-material/Sort'
 import type { SelectChangeEvent } from '@mui/material'
-import { THEMENGEBIETE } from '@/app/components/TopicPicker'
+import { THEMENGEBIETE, THEMA_KEYS } from '@/app/components/TopicPicker'
 import { PROGRAMMIERSPRACHEN } from '@/app/components/LanguagePicker'
 import { HAUPTKATEGORIEN } from '@/app/components/CategoryPicker'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export const SORT_OPTIONS = [
   { value: 'title_asc', label: 'Titel A–Z' },
@@ -32,6 +33,7 @@ const VALID_SORTS = SORT_OPTIONS.map((o) => o.value) as string[]
 interface Props {}
 
 export default function BooksFilter(_: Props) {
+  const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -41,6 +43,15 @@ export default function BooksFilter(_: Props) {
   const urlLangs = searchParams.get('programmiersprachen')?.split(',').filter(Boolean) ?? []
   const urlHk = searchParams.get('hauptkategorie')?.split(',').filter(Boolean) ?? []
   const urlSort = (VALID_SORTS.includes(searchParams.get('sort') ?? '') ? searchParams.get('sort') : 'title_asc') as SortValue
+
+  const SORT_LABELS: Record<string, string> = {
+    title_asc: t('books.sortTitleAsc'),
+    title_desc: t('books.sortTitleDesc'),
+    author_asc: t('books.sortAuthorAsc'),
+    year_desc: t('books.sortYearDesc'),
+    year_asc: t('books.sortYearAsc'),
+    hauptkategorie_asc: t('books.sortKat'),
+  }
 
   // Local state only for the text field (so typing doesn't immediately navigate)
   const [q, setQ] = useState(urlQ)
@@ -91,7 +102,7 @@ export default function BooksFilter(_: Props) {
       <TextField
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Titel, Autor, ISBN suchen…"
+        placeholder={t('books.filterSearch')}
         size="small"
         sx={{ flex: 1, minWidth: 200 }}
         slotProps={{ input: {
@@ -105,18 +116,18 @@ export default function BooksFilter(_: Props) {
 
       {/* Themengebiet multi-select */}
       <FormControl size="small" sx={{ minWidth: 180 }}>
-        <InputLabel>Themengebiet</InputLabel>
+        <InputLabel>{t('books.filterThema')}</InputLabel>
         <Select
           multiple
           value={urlTags}
           onChange={handleTagsChange}
-          input={<OutlinedInput label="Themengebiet" />}
-          renderValue={(selected) => selected.length === 0 ? '' : `${selected.length} gewählt`}
+          input={<OutlinedInput label={t('books.filterThema')} />}
+          renderValue={(selected) => selected.length === 0 ? '' : t('books.filterSelected', { count: selected.length })}
         >
-          {THEMENGEBIETE.map((t) => (
-            <MenuItem key={t} value={t} dense>
-              <Checkbox checked={urlTags.includes(t)} size="small" />
-              <ListItemText primary={t} />
+          {THEMENGEBIETE.map((tag) => (
+            <MenuItem key={tag} value={tag} dense>
+              <Checkbox checked={urlTags.includes(tag)} size="small" />
+              <ListItemText primary={t(THEMA_KEYS[tag] ?? tag)} />
             </MenuItem>
           ))}
         </Select>
@@ -124,13 +135,13 @@ export default function BooksFilter(_: Props) {
 
       {/* Programmiersprache multi-select */}
       <FormControl size="small" sx={{ minWidth: 180 }}>
-        <InputLabel>Programmiersprache</InputLabel>
+        <InputLabel>{t('books.filterLang')}</InputLabel>
         <Select
           multiple
           value={urlLangs}
           onChange={handleLangsChange}
-          input={<OutlinedInput label="Programmiersprache" />}
-          renderValue={(selected) => selected.length === 0 ? '' : `${selected.length} gewählt`}
+          input={<OutlinedInput label={t('books.filterLang')} />}
+          renderValue={(selected) => selected.length === 0 ? '' : t('books.filterSelected', { count: selected.length })}
         >
           {PROGRAMMIERSPRACHEN.map((l) => (
             <MenuItem key={l} value={l} dense>
@@ -143,18 +154,18 @@ export default function BooksFilter(_: Props) {
 
       {/* Hauptkategorie multi-select */}
       <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Kategorie</InputLabel>
+        <InputLabel>{t('books.filterKat')}</InputLabel>
         <Select
           multiple
           value={urlHk}
           onChange={handleHkChange}
-          input={<OutlinedInput label="Kategorie" />}
+          input={<OutlinedInput label={t('books.filterKat')} />}
           renderValue={(selected) => selected.length === 0 ? '' : selected.join(', ')}
         >
-          {HAUPTKATEGORIEN.map(({ label, code }) => (
+          {HAUPTKATEGORIEN.map(({ code }) => (
             <MenuItem key={code} value={code} dense>
               <Checkbox checked={urlHk.includes(code)} size="small" />
-              <ListItemText primary={`${code} – ${label}`} />
+              <ListItemText primary={`${code} – ${t('books.kat_' + code)}`} />
             </MenuItem>
           ))}
         </Select>
@@ -162,20 +173,20 @@ export default function BooksFilter(_: Props) {
 
       {/* Sortierung */}
       <FormControl size="small" sx={{ minWidth: 170 }}>
-        <InputLabel>Sortierung</InputLabel>
+        <InputLabel>{t('books.filterSort')}</InputLabel>
         <Select
           value={urlSort}
           onChange={handleSortChange}
-          input={<OutlinedInput label="Sortierung" />}
+          input={<OutlinedInput label={t('books.filterSort')} />}
           startAdornment={<InputAdornment position="start"><SortIcon fontSize="small" /></InputAdornment>}
         >
           {SORT_OPTIONS.map((o) => (
-            <MenuItem key={o.value} value={o.value} dense>{o.label}</MenuItem>
+            <MenuItem key={o.value} value={o.value} dense>{SORT_LABELS[o.value] ?? o.value}</MenuItem>
           ))}
         </Select>
       </FormControl>
 
-      <Button type="submit" variant="contained" startIcon={<SearchIcon />}>Suchen</Button>
+      <Button type="submit" variant="contained" startIcon={<SearchIcon />}>{t('books.filterSearch_btn')}</Button>
     </Box>
   )
 }

@@ -7,6 +7,7 @@ import { I18nextProvider } from 'react-i18next'
 import { CartProvider } from '@/lib/cart/CartContext'
 import NavigationProgress from '@/app/components/NavigationProgress'
 import i18n from '@/lib/i18n/config'
+import { getStoredLocale } from '@/lib/i18n/config'
 
 type ColorMode = 'light' | 'dark'
 
@@ -185,6 +186,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('colorMode') as ColorMode | null
     const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
     setMode(stored ?? preferred)
+  }, [])
+
+  // Switch i18n language after hydration to avoid SSR/client mismatch.
+  // i18n is initialized to 'en' on the server; this applies the user's stored locale.
+  useEffect(() => {
+    const locale = getStoredLocale()
+    if (locale !== i18n.language) {
+      i18n.changeLanguage(locale)
+    }
   }, [])
 
   function toggle() {

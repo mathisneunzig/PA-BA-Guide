@@ -8,6 +8,7 @@ import {
 import PrintIcon from '@mui/icons-material/Print'
 import CheckIcon from '@mui/icons-material/Check'
 import ErrorIcon from '@mui/icons-material/Error'
+import { useTranslation } from 'react-i18next'
 
 const STORAGE_KEY = 'printerName'
 
@@ -32,16 +33,17 @@ interface Props {
   onClose: () => void
 }
 
-const MODE_LABELS: Record<string, string> = {
-  label: 'Buchlabel',
-  shelf: 'Schrankplatz',
-}
-
 export default function QuickPrintDialog({ barcode, modes, mode, title, onClose }: Props) {
+  const { t } = useTranslation()
   const activeModes: ('label' | 'shelf')[] = modes ?? (mode ? [mode] : ['label'])
   const [printerName, setPrinterName] = useState(getSaved)
   const [printing, setPrinting] = useState(false)
   const [results, setResults] = useState<PrintResult[]>([])
+
+  const MODE_LABELS: Record<string, string> = {
+    label: t('print.label'),
+    shelf: t('print.shelf'),
+  }
 
   async function handlePrint() {
     setPrinting(true)
@@ -57,12 +59,12 @@ export default function QuickPrintDialog({ barcode, modes, mode, title, onClose 
         })
         const data = await res.json()
         if (res.ok) {
-          setResults((prev) => [...prev, { mode: m, ok: true, msg: `Gesendet an: ${data.printer}` }])
+          setResults((prev) => [...prev, { mode: m, ok: true, msg: t('print.sentTo', { printer: data.printer }) }])
         } else {
-          setResults((prev) => [...prev, { mode: m, ok: false, msg: data.error ?? 'Druckfehler' }])
+          setResults((prev) => [...prev, { mode: m, ok: false, msg: data.error ?? t('print.printError') }])
         }
       } catch {
-        setResults((prev) => [...prev, { mode: m, ok: false, msg: 'Verbindungsfehler' }])
+        setResults((prev) => [...prev, { mode: m, ok: false, msg: t('print.networkError') }])
       }
     }
 
@@ -75,8 +77,8 @@ export default function QuickPrintDialog({ barcode, modes, mode, title, onClose 
   const hasError = results.some((r) => !r.ok)
 
   const dialogTitle = activeModes.length > 1
-    ? `Label & Schrankplatz drucken${title ? ` — ${title}` : ''}`
-    : `${MODE_LABELS[activeModes[0]]} drucken${title ? ` — ${title}` : ''}`
+    ? `${t('print.title')}${title ? ` — ${title}` : ''}`
+    : `${MODE_LABELS[activeModes[0]]} ${t('print.print').toLowerCase()}${title ? ` — ${title}` : ''}`
 
   return (
     <Dialog open onClose={printing ? undefined : onClose} maxWidth="xs" fullWidth>
@@ -85,16 +87,16 @@ export default function QuickPrintDialog({ barcode, modes, mode, title, onClose 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {activeModes.length > 1 && (
             <Typography variant="body2" color="text.secondary">
-              Druckt nacheinander: {activeModes.map((m) => MODE_LABELS[m]).join(' + ')}.
+              {t('print.sequence', { modes: activeModes.map((m) => MODE_LABELS[m]).join(' + ') })}
             </Typography>
           )}
           <TextField
-            label="Druckername (CUPS / Windows)"
+            label={t('print.printerLabel')}
             value={printerName}
             onChange={(e) => setPrinterName(e.target.value)}
             placeholder="default"
             size="small"
-            helperText={saved ? `Zuletzt: "${saved}" — leer lassen für Standard` : 'z.B. "EPSON_TM-T20" oder leer für Standard'}
+            helperText={saved ? t('print.printerLastUsed', { name: saved }) : t('print.printerHint')}
             disabled={printing}
             fullWidth
             autoFocus
@@ -115,22 +117,22 @@ export default function QuickPrintDialog({ barcode, modes, mode, title, onClose 
           )}
 
           {allDone && !hasError && (
-            <Alert severity="success">Alle Druckjobs erfolgreich gesendet.</Alert>
+            <Alert severity="success">{t('print.allDone')}</Alert>
           )}
           {allDone && hasError && (
-            <Alert severity="warning">Mindestens ein Druckjob fehlgeschlagen.</Alert>
+            <Alert severity="warning">{t('print.someError')}</Alert>
           )}
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={printing}>Schließen</Button>
+        <Button onClick={onClose} disabled={printing}>{t('common.close')}</Button>
         <Button
           variant="contained"
           onClick={handlePrint}
           disabled={printing || allDone}
           startIcon={printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon />}
         >
-          {printing ? 'Drucke…' : allDone ? 'Gedruckt' : 'Drucken'}
+          {printing ? t('print.printing') : allDone ? t('print.printed') : t('print.print')}
         </Button>
       </DialogActions>
     </Dialog>

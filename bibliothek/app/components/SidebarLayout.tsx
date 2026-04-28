@@ -184,8 +184,15 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
       <Divider />
 
       {/* Language switcher */}
-      <Box sx={{ px: 2, py: 0.75 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 0.75 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+          {t('settings.language')}
+        </Typography>
+        <Tooltip title={t('settings.language')} placement="right" arrow>
         <LanguageSwitcher />
+        </Tooltip>
+      </Box>
+      <Box sx={{ px: 2, py: 0.75 }}>
       </Box>
 
       <Divider />

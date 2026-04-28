@@ -45,7 +45,7 @@ export async function GET(
     return Response.json({ error: 'User not found' }, { status: 404 })
   }
 
-  return Response.json({ user })
+  return Response.json(user)
 }
 
 // PUT /api/users/[id]

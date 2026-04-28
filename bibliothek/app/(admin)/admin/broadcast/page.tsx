@@ -330,7 +330,7 @@ export default function BroadcastPage() {
               {t('admin.broadcast.timeSection')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Tooltip title="Startzeitpunkt oder einzelner Zeitpunkt">
+              <Tooltip title={t('admin.broadcast.tooltipTimeFrom')}>
                 <TextField
                   label={t('admin.broadcast.timeFrom')}
                   value={timeFrom}
@@ -340,7 +340,7 @@ export default function BroadcastPage() {
                   sx={{ flex: 1, minWidth: 200 }}
                 />
               </Tooltip>
-              <Tooltip title="Endzeitpunkt (leer lassen für Einzelzeitpunkt)">
+              <Tooltip title={t('admin.broadcast.tooltipTimeTo')}>
                 <TextField
                   label={t('admin.broadcast.timeTo')}
                   value={timeTo}

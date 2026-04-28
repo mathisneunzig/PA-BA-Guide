@@ -1,21 +1,25 @@
+'use client'
+
 import { Box, Container, Divider, Typography } from '@mui/material'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 
 export default function DatenschutzPage() {
+  const { t } = useTranslation()
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>Datenschutzerklärung</Typography>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>{t('datenschutz.title')}</Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 4 }}>
-        Stand: April 2026
+        {t('datenschutz.subtitle')}
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 
         {/* 1 */}
         <Box>
-          <Typography variant="h6" gutterBottom>1. Verantwortlicher</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s1title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
+            {t('datenschutz.s1text')}
           </Typography>
           <Box sx={{ mt: 1, pl: 2, borderLeft: '3px solid', borderColor: 'divider' }}>
             <Typography variant="body2">Mathis Neunzig</Typography>
@@ -28,11 +32,9 @@ export default function DatenschutzPage() {
 
         {/* 2 */}
         <Box>
-          <Typography variant="h6" gutterBottom>2. Allgemeines zur Datenverarbeitung</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s2title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Dieses System ist ein internes Bibliotheksverwaltungssystem für Bildungseinrichtungen.
-            Personenbezogene Daten werden nur erhoben und verarbeitet, soweit dies zur Bereitstellung
-            der Funktionalität erforderlich ist. Die Verarbeitung erfolgt auf Grundlage der DSGVO.
+            {t('datenschutz.s2text')}
           </Typography>
         </Box>
 
@@ -40,25 +42,19 @@ export default function DatenschutzPage() {
 
         {/* 3 */}
         <Box>
-          <Typography variant="h6" gutterBottom>3. Erhobene Daten bei Registrierung und Nutzung</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s3title')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Bei der Registrierung und Nutzung des Systems werden folgende Daten verarbeitet:
+            {t('datenschutz.s3intro')}
           </Typography>
           <Box component="ul" sx={{ pl: 3, m: 0 }}>
-            {[
-              'Vorname und Nachname',
-              'Benutzername',
-              'E-Mail-Adresse',
-              'Passwort (verschlüsselt gespeichert, nicht im Klartext)',
-              'Rechnungs- und Lieferadresse (optional)',
-              'Ausleihhistorie (ausgeliehene Bücher, Ausleihdaten, Rückgabedaten)',
-            ].map((item) => (
-              <Typography key={item} component="li" variant="body2" color="text.secondary">{item}</Typography>
+            {(['s3item1', 's3item2', 's3item3', 's3item4', 's3item5', 's3item6'] as const).map((key) => (
+              <Typography key={key} component="li" variant="body2" color="text.secondary">
+                {t(`datenschutz.${key}`)}
+              </Typography>
             ))}
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) sowie Art. 6 Abs. 1 lit. f DSGVO
-            (berechtigtes Interesse am sicheren Betrieb des Systems).
+            {t('datenschutz.s3legal')}
           </Typography>
         </Box>
 
@@ -66,15 +62,12 @@ export default function DatenschutzPage() {
 
         {/* 4 */}
         <Box>
-          <Typography variant="h6" gutterBottom>4. E-Mail-Versand</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s4title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Das System versendet transaktionale E-Mails (z. B. E-Mail-Verifikation, Passwort-Reset,
-            Ausleihbestätigungen). Hierfür wird deine E-Mail-Adresse verwendet. Der E-Mail-Versand
-            erfolgt über einen konfigurierbaren SMTP-Server. Es werden keine E-Mails zu Werbezwecken
-            versendet.
+            {t('datenschutz.s4text')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+            {t('datenschutz.s4legal')}
           </Typography>
         </Box>
 
@@ -82,63 +75,49 @@ export default function DatenschutzPage() {
 
         {/* 5 */}
         <Box>
-          <Typography variant="h6" gutterBottom>5. Hosting durch Vercel</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s5title')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Diese Anwendung wird auf der Plattform{' '}
-            <strong>Vercel Inc., 340 Pine Street, Suite 701, San Francisco, CA 94104, USA</strong>{' '}
-            gehostet. Vercel agiert dabei als Auftragsverarbeiter gemäß Art. 28 DSGVO.
+            {t('datenschutz.s5intro')}
           </Typography>
 
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2, mb: 0.5 }}>
-            Von Vercel automatisch verarbeitete Daten
+            {t('datenschutz.s5autoTitle')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Beim Aufruf dieser Website verarbeitet Vercel im Rahmen des technischen Betriebs
-            automatisch folgende Daten:
+            {t('datenschutz.s5autoIntro')}
           </Typography>
           <Box component="ul" sx={{ pl: 3, m: 0 }}>
-            {[
-              'IP-Adresse des anfragenden Geräts (zur Geolokalisierung auf Stadt-/Länderebene)',
-              'Aufgerufene URL, HTTP-Methode und HTTP-Statuscode',
-              'Zeitstempel der Anfrage und Antwortzeiten',
-              'Browser-Typ und Betriebssystem (User-Agent)',
-              'Fehlermeldungen und Diagnosedaten',
-            ].map((item) => (
-              <Typography key={item} component="li" variant="body2" color="text.secondary">{item}</Typography>
+            {(['s5item1', 's5item2', 's5item3', 's5item4', 's5item5'] as const).map((key) => (
+              <Typography key={key} component="li" variant="body2" color="text.secondary">
+                {t(`datenschutz.${key}`)}
+              </Typography>
             ))}
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Diese Daten werden von Vercel für den technischen Betrieb, die Sicherheit und
-            Stabilität des Hostingdienstes benötigt. Die Speicherdauer der Zugriffslogs ist
-            abhängig vom gebuchten Vercel-Plan (Hobby: 1 Stunde, Pro: 1–30 Tage).
+            {t('datenschutz.s5autoNote')}
           </Typography>
 
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2, mb: 0.5 }}>
-            Datenübertragung in die USA
+            {t('datenschutz.s5usTitle')}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Vercel ist ein US-amerikanisches Unternehmen. Die Serverinfrastruktur nutzt AWS,
-            Microsoft Azure und Google Cloud Platform weltweit. Standardmäßig werden Serverless
-            Functions in den USA betrieben; statische Inhalte werden über ein weltweites CDN
-            mit Standorten auch in der EU ausgeliefert.
+            {t('datenschutz.s5usText')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Für Datenübertragungen in die USA stützt sich Vercel auf:
+            {t('datenschutz.s5usLegalIntro')}
           </Typography>
           <Box component="ul" sx={{ pl: 3, m: 0 }}>
-            {[
-              'EU-Standardvertragsklauseln (SCCs) nach Art. 46 Abs. 2 lit. c DSGVO',
-              'EU-U.S. Data Privacy Framework (Vercel ist DPF-zertifiziert)',
-            ].map((item) => (
-              <Typography key={item} component="li" variant="body2" color="text.secondary">{item}</Typography>
+            {(['s5usItem1', 's5usItem2'] as const).map((key) => (
+              <Typography key={key} component="li" variant="body2" color="text.secondary">
+                {t(`datenschutz.${key}`)}
+              </Typography>
             ))}
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Rechtsgrundlage für die Verarbeitung durch Vercel: Art. 6 Abs. 1 lit. f DSGVO
-            (berechtigtes Interesse am technischen Betrieb und der Sicherheit).
+            {t('datenschutz.s5legal')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Weitere Informationen:{' '}
+            {t('datenschutz.s5more')}{' '}
             <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer"
                style={{ color: 'inherit' }}>
               Vercel Privacy Policy
@@ -155,14 +134,12 @@ export default function DatenschutzPage() {
 
         {/* 6 */}
         <Box>
-          <Typography variant="h6" gutterBottom>6. Cookies und Sitzungsdaten</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s6title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Das System verwendet ausschließlich technisch notwendige Cookies zur Verwaltung
-            der Anmeldesitzung (Session-Token). Es werden keine Tracking- oder Analyse-Cookies
-            eingesetzt. Keine Daten werden an Werbenetzwerke übermittelt.
+            {t('datenschutz.s6text')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+            {t('datenschutz.s6legal')}
           </Typography>
         </Box>
 
@@ -170,11 +147,9 @@ export default function DatenschutzPage() {
 
         {/* 7 */}
         <Box>
-          <Typography variant="h6" gutterBottom>7. Speicherdauer</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s7title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Personenbezogene Daten werden nur so lange gespeichert, wie es für die Erfüllung
-            der Zwecke erforderlich ist oder gesetzliche Aufbewahrungsfristen bestehen. Nach
-            Austritt aus der Bildungseinrichtung oder auf Anfrage werden die Daten gelöscht.
+            {t('datenschutz.s7text')}
           </Typography>
         </Box>
 
@@ -182,29 +157,22 @@ export default function DatenschutzPage() {
 
         {/* 8 */}
         <Box>
-          <Typography variant="h6" gutterBottom>8. Deine Rechte</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s8title')}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Du hast gegenüber dem Verantwortlichen folgende Rechte hinsichtlich deiner
-            personenbezogenen Daten:
+            {t('datenschutz.s8intro')}
           </Typography>
           <Box component="ul" sx={{ pl: 3, m: 0 }}>
-            {[
-              'Recht auf Auskunft (Art. 15 DSGVO)',
-              'Recht auf Berichtigung (Art. 16 DSGVO)',
-              'Recht auf Löschung (Art. 17 DSGVO)',
-              'Recht auf Einschränkung der Verarbeitung (Art. 18 DSGVO)',
-              'Recht auf Datenübertragbarkeit (Art. 20 DSGVO)',
-              'Recht auf Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)',
-            ].map((item) => (
-              <Typography key={item} component="li" variant="body2" color="text.secondary">{item}</Typography>
+            {(['s8item1', 's8item2', 's8item3', 's8item4', 's8item5', 's8item6'] as const).map((key) => (
+              <Typography key={key} component="li" variant="body2" color="text.secondary">
+                {t(`datenschutz.${key}`)}
+              </Typography>
             ))}
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Du hast außerdem das Recht, dich bei der zuständigen Datenschutz-Aufsichtsbehörde
-            zu beschweren. Die zuständige Behörde für Baden-Württemberg ist der{' '}
+            {t('datenschutz.s8complaint')}{' '}
             <a href="https://www.baden-wuerttemberg.datenschutz.de" target="_blank" rel="noopener noreferrer"
                style={{ color: 'inherit' }}>
-              Landesbeauftragter für Datenschutz und Informationsfreiheit Baden-Württemberg
+              {t('datenschutz.s8authorityName')}
             </a>.
           </Typography>
         </Box>
@@ -213,11 +181,9 @@ export default function DatenschutzPage() {
 
         {/* 9 */}
         <Box>
-          <Typography variant="h6" gutterBottom>9. Änderungen dieser Datenschutzerklärung</Typography>
+          <Typography variant="h6" gutterBottom>{t('datenschutz.s9title')}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Diese Datenschutzerklärung kann bei Bedarf aktualisiert werden, um Änderungen am
-            System oder an gesetzlichen Anforderungen Rechnung zu tragen. Die jeweils aktuelle
-            Version ist auf dieser Seite abrufbar.
+            {t('datenschutz.s9text')}
           </Typography>
         </Box>
 
@@ -225,7 +191,7 @@ export default function DatenschutzPage() {
 
       <Box sx={{ mt: 4 }}>
         <Link href="/" style={{ fontSize: 14, textDecoration: 'none', color: 'inherit' }}>
-          ← Zurück zur Startseite
+          {t('datenschutz.back')}
         </Link>
       </Box>
     </Container>

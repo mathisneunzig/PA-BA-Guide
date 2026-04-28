@@ -72,6 +72,11 @@ describe('GET /api/users/[id]', () => {
     const req = makeReq('GET', 'http://localhost/api/users/stu_1')
     const res = await getUser(req, { params: Promise.resolve({ id: 'stu_1' }) })
     expect(res.status).toBe(200)
+    // Response must be flat user object (not wrapped in { user: ... })
+    const json = await res.json()
+    expect(json.id).toBe('stu_1')
+    expect(json.email_verified).toBe(true)
+    expect(json.user).toBeUndefined()
   })
 
   it('returns 403 when accessing another user', async () => {

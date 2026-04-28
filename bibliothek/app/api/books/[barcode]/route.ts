@@ -31,10 +31,23 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const existing = await prisma.book.findUnique({ where: { id: barcode }, select: { id: true } })
+  const existing = await prisma.book.findUnique({
+    where: { id: barcode },
+    select: { id: true, totalCopies: true, availableCopies: true },
+  })
   if (!existing) return NextResponse.json({ error: 'Book not found' }, { status: 404 })
 
-  const book = await prisma.book.update({ where: { id: barcode }, data: parsed.data })
+  // When totalCopies changes, adjust availableCopies by the same delta
+  const updateData = { ...parsed.data }
+  if (
+    typeof updateData.totalCopies === 'number' &&
+    typeof updateData.availableCopies === 'undefined'
+  ) {
+    const delta = updateData.totalCopies - existing.totalCopies
+    updateData.availableCopies = Math.max(0, existing.availableCopies + delta)
+  }
+
+  const book = await prisma.book.update({ where: { id: barcode }, data: updateData })
   invalidateSearchIndex()
   return NextResponse.json(book)
 }
