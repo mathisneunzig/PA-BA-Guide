@@ -15,8 +15,8 @@ export default async function DashboardPage() {
   const user = await getSessionUser()
 
   const [activeLoans, overdueLoans] = await Promise.all([
-    prisma.loan.count({ where: { userId: user!.id, status: 'ACTIVE' } }),
-    prisma.loan.count({ where: { userId: user!.id, status: 'OVERDUE' } }),
+    prisma.loanItem.count({ where: { group: { userId: user!.id }, status: 'ACTIVE' } }),
+    prisma.loanItem.count({ where: { group: { userId: user!.id }, status: 'OVERDUE' } }),
   ])
 
   const quickLinks = [

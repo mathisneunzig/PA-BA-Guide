@@ -18,6 +18,7 @@ import LibraryAddIcon from '@mui/icons-material/LibraryAdd'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import GroupIcon from '@mui/icons-material/Group'
 import SendIcon from '@mui/icons-material/Send'
+import FeedbackIcon from '@mui/icons-material/Feedback'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -30,6 +31,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useColorMode } from '@/app/providers'
 import { useCart } from '@/lib/cart/CartContext'
+import FeedbackButton from '@/app/components/FeedbackButton'
 
 const DRAWER_W = 220
 
@@ -51,6 +53,7 @@ const ADMIN_LINKS = [
   { label: 'Rückgabe', href: '/admin/return', icon: <AssignmentReturnIcon /> },
   { label: 'Benutzer verwalten', href: '/admin/users', icon: <GroupIcon /> },
   { label: 'Rundmail', href: '/admin/broadcast', icon: <SendIcon /> },
+  { label: 'Feedback', href: '/admin/feedback', icon: <FeedbackIcon /> },
 ]
 
 interface NavItemProps {
@@ -276,6 +279,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           </Box>
         )}
         {children}
+        <FeedbackButton />
       </Box>
     </Box>
   )

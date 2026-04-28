@@ -50,8 +50,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  loans     Loan[]
-  cartHolds CartHold[]
+  cartHolds  CartHold[]
+  feedbacks  Feedback[]
+  loanGroups LoanGroup[]
 
   @@map("users")
 }
@@ -67,8 +68,7 @@ enum LoanStatus {
 enum HandoverMethod {
   PICKUP       // Abholung durch den Nutzer
   MEETINGPOINT // Treffpunkt vereinbaren
-  SHIPPING     // Zusendet (mit Versandkosten)
-  DROPOFF      // Nutzer bringt Buch selbst vorbei
+  SHIPPING     // Zusenden (mit Versandkosten)
 }
 
 model Book {
@@ -92,8 +92,8 @@ model Book {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  loans     Loan[]
-  cartHolds CartHold[]
+  cartHolds  CartHold[]
+  loanItems  LoanItem[]
 
   @@map("books")
 }
@@ -115,30 +115,52 @@ model CartHold {
   @@map("cart_holds")
 }
 
-model Loan {
-  id               String     @id @default(cuid())
+/// A loan group represents a single checkout event containing one or more books.
+/// Shared metadata (dates, handover) lives here; per-book status lives in LoanItem.
+model LoanGroup {
+  id               String          @id @default(cuid())
   userId           String
-  bookId           String
-  status           LoanStatus @default(RESERVED)
+  /// Aggregate status: RESERVED until activated, ACTIVE while any item is active,
+  /// RETURNED when all items returned, CANCELLED when all items cancelled.
+  status           LoanStatus      @default(RESERVED)
   startDate        DateTime
   dueDate          DateTime
-  returnedAt       DateTime?
   loanDurationDays Int
-  notes            String?    @db.Text
+  notes            String?         @db.Text
 
-  // Handover / pickup details
   handoverMethod   HandoverMethod?
-  handoverDate     DateTime?        // PICKUP / MEETINGPOINT / DROPOFF
-  handoverLocation String?          // MEETINGPOINT: where to meet
-  handoverCost     Decimal?  @db.Decimal(8, 2) // SHIPPING: shipping cost in €
+  handoverDate     DateTime?
+  handoverLocation String?
+  handoverCost     Decimal?        @db.Decimal(8, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items LoanItem[]
 
-  @@map("loans")
+  @@index([userId])
+  @@index([status])
+  @@map("loan_groups")
+}
+
+/// One book within a LoanGroup. Tracks individual return/cancel status.
+model LoanItem {
+  id         String     @id @default(cuid())
+  groupId    String
+  bookId     String
+  status     LoanStatus @default(RESERVED)
+  returnedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group LoanGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  book  Book      @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@index([groupId])
+  @@index([bookId])
+  @@map("loan_items")
 }
 
 model Config {
@@ -146,4 +168,46 @@ model Config {
   value String
 
   @@map("config")
+}
+
+enum FeedbackCategory {
+  BUG
+  IMPROVEMENT
+  QUESTION
+  OTHER
+}
+
+enum FeedbackSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+/// User-submitted feedback or issue report.
+/// userId is nullable — unauthenticated users can also submit.
+model Feedback {
+  id          String           @id @default(cuid())
+  userId      String?
+  category    FeedbackCategory @default(OTHER)
+  severity    FeedbackSeverity @default(LOW)
+  description String           @db.Text
+  pageUrl     String?
+  status      FeedbackStatus   @default(OPEN)
+  adminNote   String?          @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("feedbacks")
 }

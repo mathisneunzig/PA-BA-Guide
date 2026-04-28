@@ -13,20 +13,18 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import EventIcon from '@mui/icons-material/Event'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import PinDropIcon from '@mui/icons-material/PinDrop'
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk'
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import Link from 'next/link'
 import { useCart } from '@/lib/cart/CartContext'
 import CartTimer from '@/app/components/CartTimer'
 
-type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING' | 'DROPOFF'
+type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING'
 
 const HANDOVER_OPTIONS: { value: HandoverMethod; label: string; icon: React.ReactNode; description: string }[] = [
-  { value: 'PICKUP',       label: 'Abholung',     icon: <MeetingRoomIcon fontSize="small" />,    description: 'Ich hole das Buch bei Mathis ab' },
-  { value: 'MEETINGPOINT', label: 'Treffpunkt',    icon: <PinDropIcon fontSize="small" />,        description: 'Wir vereinbaren einen Treffpunkt' },
-  { value: 'SHIPPING',     label: 'Zusenden',      icon: <LocalShippingIcon fontSize="small" />,  description: 'Buch wird zugeschickt (zzgl. Versandkosten)' },
-  { value: 'DROPOFF',      label: 'Vorbeibringen', icon: <DirectionsWalkIcon fontSize="small" />, description: 'Ich bringe das Buch vorbei' },
+  { value: 'PICKUP',       label: 'Abholung',  icon: <MeetingRoomIcon fontSize="small" />,   description: 'Ich hole das Buch bei Mathis ab' },
+  { value: 'MEETINGPOINT', label: 'Treffpunkt', icon: <PinDropIcon fontSize="small" />,       description: 'Wir vereinbaren einen Treffpunkt' },
+  { value: 'SHIPPING',     label: 'Zusenden',   icon: <LocalShippingIcon fontSize="small" />, description: 'Buch wird zugeschickt (zzgl. Versandkosten)' },
 ]
 
 export default function CartPage() {
@@ -48,7 +46,7 @@ export default function CartPage() {
   const dueDate = new Date(startDate)
   dueDate.setDate(dueDate.getDate() + durationDays)
 
-  const needsDate     = handoverMethod === 'PICKUP' || handoverMethod === 'MEETINGPOINT' || handoverMethod === 'DROPOFF'
+  const needsDate     = handoverMethod === 'PICKUP' || handoverMethod === 'MEETINGPOINT'
   const needsLocation = handoverMethod === 'MEETINGPOINT'
   const needsCost     = handoverMethod === 'SHIPPING'
 
@@ -58,35 +56,29 @@ export default function CartPage() {
     setSubmitError('')
     setSubmitting(true)
 
-    const errors: string[] = []
-    for (const book of items) {
-      const body: Record<string, unknown> = {
-        bookId: book.id,
-        startDate: new Date(startDate).toISOString(),
-        durationDays,
-        notes: notes || undefined,
-        handoverMethod,
-      }
-      if (needsDate && handoverDate) body.handoverDate = new Date(handoverDate).toISOString()
-      if (needsLocation && handoverLocation) body.handoverLocation = handoverLocation
-      if (needsCost && handoverCost) body.handoverCost = parseFloat(handoverCost)
-
-      const res = await fetch('/api/loans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        errors.push(`${book.title}: ${d.error ?? 'Fehler'}`)
-      }
+    const body: Record<string, unknown> = {
+      bookIds: items.map((b) => b.id),
+      startDate: new Date(startDate).toISOString(),
+      durationDays,
+      notes: notes || undefined,
+      handoverMethod,
     }
+    if (needsDate && handoverDate) body.handoverDate = new Date(handoverDate).toISOString()
+    if (needsLocation && handoverLocation) body.handoverLocation = handoverLocation
+    if (needsCost && handoverCost) body.handoverCost = parseFloat(handoverCost)
+
+    const res = await fetch('/api/loans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
 
     setSubmitting(false)
-    if (errors.length > 0) {
-      setSubmitError(errors.join(' | '))
+
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setSubmitError(d.error ? (typeof d.error === 'string' ? d.error : JSON.stringify(d.error)) : 'Fehler beim Reservieren')
     } else {
-      // Holds are released server-side per loan; clear cart client-side
       clear()
       setDone(true)
       setTimeout(() => router.push('/my-loans'), 1500)
@@ -97,7 +89,7 @@ export default function CartPage() {
     return (
       <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
         <Alert severity="success" sx={{ mb: 2 }}>
-          Alle Reservierungen erfolgreich erstellt! Weiterleitung…
+          Reservierung erfolgreich erstellt! Weiterleitung…
         </Alert>
       </Container>
     )
@@ -229,7 +221,7 @@ export default function CartPage() {
 
                   {needsDate && (
                     <TextField
-                      label={handoverMethod === 'PICKUP' ? 'Abholdatum' : handoverMethod === 'DROPOFF' ? 'Datum Vorbeibringen' : 'Treffpunkt-Datum'}
+                      label={handoverMethod === 'PICKUP' ? 'Abholdatum' : 'Treffpunkt-Datum'}
                       type="date" value={handoverDate} onChange={(e) => setHandoverDate(e.target.value)}
                       size="small" fullWidth sx={{ mt: 1.5 }}
                       slotProps={{ htmlInput: { min: new Date().toISOString().slice(0, 10) }, inputLabel: { shrink: true } }}

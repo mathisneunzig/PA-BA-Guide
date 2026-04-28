@@ -91,28 +91,23 @@ function AdminMultiLoanForm() {
 
     setSubmitError('')
     setSubmitting(true)
-    const errors: string[] = []
-    for (const book of validBooks) {
-      const res = await fetch('/api/loans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookId: book.barcode,
-          startDate: new Date().toISOString(),
-          durationDays,
-          notes: notes || undefined,
-          immediate: true,
-        }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        errors.push(`${book.title}: ${d.error ?? 'Fehler'}`)
-      }
-    }
+
+    const res = await fetch('/api/loans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookIds: validBooks.map((b) => b.barcode),
+        startDate: new Date().toISOString(),
+        durationDays,
+        notes: notes || undefined,
+        immediate: true,
+      }),
+    })
     setSubmitting(false)
 
-    if (errors.length > 0) {
-      setSubmitError(errors.join(' | '))
+    if (!res.ok) {
+      const d = await res.json()
+      setSubmitError(d.error ? (typeof d.error === 'string' ? d.error : JSON.stringify(d.error)) : 'Fehler')
     } else {
       setSubmitSuccess(true)
       setTimeout(() => router.push('/admin/loans'), 1200)

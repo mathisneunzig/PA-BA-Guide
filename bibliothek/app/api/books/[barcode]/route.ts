@@ -44,7 +44,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   await requireRole('ADMIN')
   const { barcode } = await params
 
-  const activeLoans = await prisma.loan.count({
+  const activeLoans = await prisma.loanItem.count({
     where: {
       bookId: barcode,
       status: { in: [LoanStatus.ACTIVE, LoanStatus.RESERVED] },

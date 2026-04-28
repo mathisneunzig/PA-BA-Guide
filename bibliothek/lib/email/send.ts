@@ -63,26 +63,27 @@ export async function sendPasswordResetEmail({
 
 export async function sendReservationConfirmationEmail({
   to,
-  bookTitle,
+  bookTitles,
   startDate,
   dueDate,
-  loanId,
+  groupId,
 }: {
   to: string
-  bookTitle: string
+  bookTitles: string[]
   startDate: Date
   dueDate: Date
-  loanId: string
+  groupId: string
 }) {
+  const bookList = bookTitles.map((t) => `<li>${t}</li>`).join('')
   return getTransport().sendMail({
     from: FROM(),
     to,
-    subject: `Reservierung bestätigt: ${bookTitle}`,
+    subject: `Reservierung bestätigt: ${bookTitles.length === 1 ? bookTitles[0] : `${bookTitles.length} Bücher`}`,
     html: renderTemplate('reservation-confirmation', {
-      bookTitle,
+      bookList,
       startDate: startDate.toLocaleDateString('de-DE'),
       dueDate: dueDate.toLocaleDateString('de-DE'),
-      loanUrl: `${APP_URL()}/my-loans/${loanId}`,
+      loanUrl: `${APP_URL()}/my-loans`,
     }),
   })
 }
@@ -141,32 +142,31 @@ export async function sendBroadcastEmail({
 
 export async function sendLoanReceiptEmail({
   to,
-  bookTitle,
+  bookTitles,
   dueDate,
-  loanId,
+  groupId,
 }: {
   to: string
-  bookTitle: string
+  bookTitles: string[]
   dueDate: Date
-  loanId: string
+  groupId: string
 }) {
+  const bookList = bookTitles.map((t) => `<li>${t}</li>`).join('')
   return getTransport().sendMail({
     from: FROM(),
     to,
-    subject: `Ausgeliehen: ${bookTitle}`,
+    subject: `Ausgeliehen: ${bookTitles.length === 1 ? bookTitles[0] : `${bookTitles.length} Bücher`}`,
     html: renderTemplate('loan-receipt', {
-      bookTitle,
+      bookList,
       dueDate: dueDate.toLocaleDateString('de-DE'),
-      loanUrl: `${APP_URL()}/my-loans/${loanId}`,
+      loanUrl: `${APP_URL()}/my-loans`,
     }),
   })
 }
 
 export async function sendNewReservationEmail({
   to,
-  bookTitle,
-  bookAuthor,
-  regalnummer,
+  books,
   userName,
   userEmail,
   startDate,
@@ -175,9 +175,7 @@ export async function sendNewReservationEmail({
   notes,
 }: {
   to: string
-  bookTitle: string
-  bookAuthor: string
-  regalnummer?: string | null
+  books: Array<{ title: string; author: string; regalnummer?: string | null }>
   userName: string
   userEmail: string
   startDate: Date
@@ -189,16 +187,18 @@ export async function sendNewReservationEmail({
     PICKUP: 'Abholung',
     MEETINGPOINT: 'Treffpunkt',
     SHIPPING: 'Versand',
-    DROPOFF: 'Vorbeibringen',
   }
+  const bookList = books
+    .map((b) => `<li>${b.title}${b.regalnummer ? ` <span style="color:#666;font-size:12px">(${b.regalnummer})</span>` : ''}</li>`)
+    .join('')
   return getTransport().sendMail({
     from: FROM(),
     to,
-    subject: `Neue Reservierung: „${bookTitle}" von ${userName}`,
+    subject: `Neue Reservierung von ${userName}: ${books.length === 1 ? `„${books[0].title}"` : `${books.length} Bücher`}`,
     html: renderTemplate('new-reservation', {
-      bookTitle,
-      bookAuthor,
-      regalnummer: regalnummer ?? null,
+      bookList,
+      bookCount: String(books.length),
+      bookCountSuffix: books.length === 1 ? '' : 'er',
       userName,
       userEmail,
       startDate: startDate.toLocaleDateString('de-DE'),

@@ -4,75 +4,72 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { LoanStatus } from '@prisma/client'
 import {
-  Box, Button, Chip, CircularProgress, Container, Stack,
+  Box, Button, Chip, CircularProgress, Collapse, Container, IconButton, Stack,
   Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import PinDropIcon from '@mui/icons-material/PinDrop'
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk'
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import MenuBookIcon from '@mui/icons-material/MenuBook'
 import Link from 'next/link'
-import LoanStatusActions from './LoanStatusActions'
+import { GroupStatusActions, ItemStatusActions } from './LoanStatusActions'
 
 const STATUS_OPTIONS = ['', 'RESERVED', 'ACTIVE', 'RETURNED', 'OVERDUE', 'CANCELLED'] as const
 const STATUS_LABEL: Record<string, string> = {
-  '': 'Alle',
-  RESERVED: 'Reserviert',
-  ACTIVE: 'Ausgeliehen',
-  RETURNED: 'Zurückgegeben',
-  OVERDUE: 'Überfällig',
-  CANCELLED: 'Storniert',
+  '': 'Alle', RESERVED: 'Reserviert', ACTIVE: 'Ausgeliehen',
+  RETURNED: 'Zurückgegeben', OVERDUE: 'Überfällig', CANCELLED: 'Storniert',
 }
 const STATUS_COLOR: Record<LoanStatus, 'warning' | 'success' | 'default' | 'error' | 'info'> = {
   RESERVED: 'warning', ACTIVE: 'success', RETURNED: 'default', OVERDUE: 'error', CANCELLED: 'default',
 }
 
-const HANDOVER_LABEL: Record<string, string> = {
-  PICKUP: 'Abholung',
-  MEETINGPOINT: 'Treffpunkt',
-  SHIPPING: 'Versand',
-  DROPOFF: 'Vorbeibringen',
-}
+const HANDOVER_LABEL: Record<string, string> = { PICKUP: 'Abholung', MEETINGPOINT: 'Treffpunkt', SHIPPING: 'Versand' }
 const HANDOVER_ICON: Record<string, React.ReactNode> = {
   PICKUP: <MeetingRoomIcon fontSize="inherit" />,
   MEETINGPOINT: <PinDropIcon fontSize="inherit" />,
   SHIPPING: <LocalShippingIcon fontSize="inherit" />,
-  DROPOFF: <DirectionsWalkIcon fontSize="inherit" />,
 }
 
-interface Loan {
+interface LoanItem {
+  id: string
+  status: LoanStatus
+  returnedAt: string | null
+  book: { id: string; title: string; author: string; regalnummer: string | null }
+}
+
+interface LoanGroup {
   id: string
   status: LoanStatus
   dueDate: string
+  startDate: string
   handoverMethod: string | null
   handoverDate: string | null
   handoverLocation: string | null
   handoverCost: number | null
-  book: { title: string }
+  notes: string | null
   user: { username: string; email: string }
+  items: LoanItem[]
 }
 
-function HandoverCell({ loan }: { loan: Loan }) {
-  if (!loan.handoverMethod) return <Typography variant="caption" color="text.disabled">—</Typography>
-
-  const label = HANDOVER_LABEL[loan.handoverMethod] ?? loan.handoverMethod
-  const icon = HANDOVER_ICON[loan.handoverMethod]
-
+function HandoverCell({ group }: { group: LoanGroup }) {
+  if (!group.handoverMethod) return <Typography variant="caption" color="text.disabled">—</Typography>
+  const label = HANDOVER_LABEL[group.handoverMethod] ?? group.handoverMethod
+  const icon = HANDOVER_ICON[group.handoverMethod]
   const details: string[] = []
-  if (loan.handoverDate) details.push(new Date(loan.handoverDate).toLocaleDateString('de-DE'))
-  if (loan.handoverLocation) details.push(loan.handoverLocation)
-  if (loan.handoverCost != null) details.push(`${Number(loan.handoverCost).toFixed(2)} €`)
-
+  if (group.handoverDate) details.push(new Date(group.handoverDate).toLocaleDateString('de-DE'))
+  if (group.handoverLocation) details.push(group.handoverLocation)
+  if (group.handoverCost != null) details.push(`${Number(group.handoverCost).toFixed(2)} €`)
   const tooltipText = details.length > 0 ? details.join(' · ') : label
-
   return (
     <Tooltip title={tooltipText} placement="top">
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'default' }}>
         <Box sx={{ color: 'text.secondary', fontSize: 14, display: 'flex' }}>{icon}</Box>
         <Typography variant="caption">{label}</Typography>
         {details.length > 0 && (
-          <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 120 }}>
+          <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 100 }}>
             · {details[0]}
           </Typography>
         )}
@@ -81,12 +78,106 @@ function HandoverCell({ loan }: { loan: Loan }) {
   )
 }
 
+function GroupRow({ group, onDone }: { group: LoanGroup; onDone: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <>
+      <TableRow hover sx={{ '& > td': { borderBottom: expanded ? 'none' : undefined } }}>
+        <TableCell sx={{ width: 36, p: 0.5 }}>
+          <IconButton size="small" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </IconButton>
+        </TableCell>
+        <TableCell>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <MenuBookIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+            <Typography variant="body2">
+              {group.items.length === 1
+                ? group.items[0].book.title
+                : `${group.items.length} Bücher`}
+            </Typography>
+          </Box>
+          {group.items.length > 1 && (
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {group.items.slice(0, 2).map((i) => i.book.title).join(', ')}{group.items.length > 2 ? ` +${group.items.length - 2}` : ''}
+            </Typography>
+          )}
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2">{group.user.username}</Typography>
+          <Typography variant="caption" color="text.secondary">{group.user.email}</Typography>
+        </TableCell>
+        <TableCell>
+          <Chip label={STATUS_LABEL[group.status]} color={STATUS_COLOR[group.status]} size="small" />
+        </TableCell>
+        <TableCell>
+          <HandoverCell group={group} />
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2" color={group.status === 'OVERDUE' ? 'error' : 'inherit'}>
+            {new Date(group.dueDate).toLocaleDateString('de-DE')}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <GroupStatusActions groupId={group.id} groupStatus={group.status} onDone={onDone} />
+        </TableCell>
+      </TableRow>
+
+      {/* Expanded item rows */}
+      <TableRow>
+        <TableCell colSpan={7} sx={{ p: 0, border: 0 }}>
+          <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Box sx={{ bgcolor: 'action.hover', px: 3, py: 1 }}>
+              {group.notes && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                  Notiz: {group.notes}
+                </Typography>
+              )}
+              <Table size="small">
+                <TableBody>
+                  {group.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell sx={{ border: 0, py: 0.5, pl: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{item.book.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">{item.book.author}</Typography>
+                        {item.book.regalnummer && (
+                          <Typography variant="caption" color="text.disabled" sx={{ ml: 1 }}>
+                            Regal: {item.book.regalnummer}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ border: 0, py: 0.5 }}>
+                        <Chip label={STATUS_LABEL[item.status]} color={STATUS_COLOR[item.status]} size="small" variant="outlined" />
+                      </TableCell>
+                      <TableCell sx={{ border: 0, py: 0.5 }}>
+                        {item.returnedAt && (
+                          <Typography variant="caption" color="text.secondary">
+                            Zurück: {new Date(item.returnedAt).toLocaleDateString('de-DE')}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ border: 0, py: 0.5 }}>
+                        <ItemStatusActions itemId={item.id} itemStatus={item.status} onDone={onDone} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  )
+}
+
 function AdminLoansContent() {
   const searchParams = useSearchParams()
   const status = (searchParams.get('status') ?? '') as LoanStatus | ''
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
 
-  const [loans, setLoans] = useState<Loan[]>([])
+  const [groups, setGroups] = useState<LoanGroup[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -101,7 +192,7 @@ function AdminLoansContent() {
     params.set('limit', String(limit))
     fetch(`/api/admin/loans?${params}`)
       .then((r) => r.json())
-      .then((data) => { setLoans(data.loans ?? []); setTotal(data.total ?? 0) })
+      .then((data) => { setGroups(data.groups ?? []); setTotal(data.total ?? 0) })
       .finally(() => setLoading(false))
   }, [status, page])
 
@@ -148,7 +239,8 @@ function AdminLoansContent() {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 600 } }}>
-                <TableCell>Buch</TableCell>
+                <TableCell sx={{ width: 36 }} />
+                <TableCell>Bücher</TableCell>
                 <TableCell>Nutzer</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Übergabe</TableCell>
@@ -157,38 +249,12 @@ function AdminLoansContent() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {loans.map((loan) => (
-                <TableRow key={loan.id} hover>
-                  <TableCell>
-                    <Typography variant="body2">{loan.book.title}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{loan.user.username}</Typography>
-                    <Typography variant="caption" color="text.secondary">{loan.user.email}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={STATUS_LABEL[loan.status]}
-                      color={STATUS_COLOR[loan.status]}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <HandoverCell loan={loan} />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color={loan.status === 'OVERDUE' ? 'error' : 'inherit'}>
-                      {new Date(loan.dueDate).toLocaleDateString('de-DE')}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <LoanStatusActions loanId={loan.id} status={loan.status} onDone={load} />
-                  </TableCell>
-                </TableRow>
+              {groups.map((group) => (
+                <GroupRow key={group.id} group={group} onDone={load} />
               ))}
-              {loans.length === 0 && (
+              {groups.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     Keine Ausleihen gefunden.
                   </TableCell>
                 </TableRow>

@@ -8,6 +8,9 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import PinDropIcon from '@mui/icons-material/PinDrop'
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import Link from 'next/link'
 import LoanActions from './LoanActions'
 
@@ -19,11 +22,27 @@ const STATUS_COLOR: Record<LoanStatus, 'warning' | 'success' | 'default' | 'erro
   RESERVED: 'warning', ACTIVE: 'success', RETURNED: 'default', OVERDUE: 'error', CANCELLED: 'default',
 }
 
+const HANDOVER_LABEL: Record<string, string> = {
+  PICKUP: 'Abholung',
+  MEETINGPOINT: 'Treffpunkt',
+  SHIPPING: 'Versand',
+}
+const HANDOVER_ICON: Record<string, React.ReactNode> = {
+  PICKUP: <MeetingRoomIcon sx={{ fontSize: 14 }} />,
+  MEETINGPOINT: <PinDropIcon sx={{ fontSize: 14 }} />,
+  SHIPPING: <LocalShippingIcon sx={{ fontSize: 14 }} />,
+}
+
 export default async function MyLoansPage() {
   const session = await verifySession()
-  const loans = await prisma.loan.findMany({
+  const groups = await prisma.loanGroup.findMany({
     where: { userId: session.user.id },
-    include: { book: { select: { title: true, author: true, id: true } } },
+    include: {
+      items: {
+        include: { book: { select: { id: true, title: true, author: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -39,7 +58,7 @@ export default async function MyLoansPage() {
         </Button>
       </Box>
 
-      {loans.length === 0 ? (
+      {groups.length === 0 ? (
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <MenuBookIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
@@ -51,35 +70,63 @@ export default async function MyLoansPage() {
         </Card>
       ) : (
         <Stack spacing={2}>
-          {loans.map((loan) => (
-            <Card key={loan.id}>
+          {groups.map((group) => (
+            <Card key={group.id}>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                {/* Group header */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                   <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      <Link href={`/books/${loan.book.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        {loan.book.title}
-                      </Link>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(group.createdAt).toLocaleDateString('de-DE')}
+                      {' · '}
+                      {group.items.length} Buch{group.items.length !== 1 ? 'er' : ''}
+                      {group.handoverMethod && (
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                          {HANDOVER_ICON[group.handoverMethod]}
+                          {HANDOVER_LABEL[group.handoverMethod] ?? group.handoverMethod}
+                        </Box>
+                      )}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">{loan.book.author}</Typography>
                   </Box>
-                  <Chip label={STATUS_LABEL[loan.status]} color={STATUS_COLOR[loan.status]} size="small" />
+                  <Chip label={STATUS_LABEL[group.status]} color={STATUS_COLOR[group.status]} size="small" />
                 </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                {/* Individual books */}
+                <Stack spacing={1}>
+                  {group.items.map((item) => (
+                    <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <MenuBookIcon sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
+                          <Link href={`/books/${item.book.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            {item.book.title}
+                          </Link>
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>{item.book.author}</Typography>
+                      </Box>
+                      {/* Show individual item chip only if different from group status */}
+                      {item.status !== group.status && (
+                        <Chip label={STATUS_LABEL[item.status]} color={STATUS_COLOR[item.status]} size="small" variant="outlined" />
+                      )}
+                      {/* Cancel button per item */}
+                      <LoanActions itemId={item.id} status={item.status} />
+                    </Box>
+                  ))}
+                </Stack>
+
                 <Divider sx={{ my: 1.5 }} />
+
+                {/* Dates */}
                 <Stack direction="row" spacing={3}>
                   <Typography variant="caption" color="text.secondary">
-                    Start: {new Date(loan.startDate).toLocaleDateString('de-DE')}
+                    Start: {new Date(group.startDate).toLocaleDateString('de-DE')}
                   </Typography>
-                  <Typography variant="caption" color={loan.status === 'OVERDUE' ? 'error' : 'text.secondary'}>
-                    Fällig: {new Date(loan.dueDate).toLocaleDateString('de-DE')}
+                  <Typography variant="caption" color={group.status === 'OVERDUE' ? 'error' : 'text.secondary'}>
+                    Fällig: {new Date(group.dueDate).toLocaleDateString('de-DE')}
                   </Typography>
-                  {loan.returnedAt && (
-                    <Typography variant="caption" color="text.secondary">
-                      Zurückgegeben: {new Date(loan.returnedAt).toLocaleDateString('de-DE')}
-                    </Typography>
-                  )}
                 </Stack>
-                <LoanActions loanId={loan.id} status={loan.status} />
               </CardContent>
             </Card>
           ))}

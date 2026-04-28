@@ -13,17 +13,15 @@ import EventIcon from '@mui/icons-material/Event'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import PinDropIcon from '@mui/icons-material/PinDrop'
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk'
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'
 import Link from 'next/link'
 
-type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING' | 'DROPOFF'
+type HandoverMethod = 'PICKUP' | 'MEETINGPOINT' | 'SHIPPING'
 
 const HANDOVER_OPTIONS: { value: HandoverMethod; label: string; icon: React.ReactNode; description: string }[] = [
   { value: 'PICKUP',       label: 'Abholung',     icon: <MeetingRoomIcon fontSize="small" />,    description: 'Abholung beim Verleiher' },
   { value: 'MEETINGPOINT', label: 'Treffpunkt',    icon: <PinDropIcon fontSize="small" />,        description: 'Treffpunkt vereinbaren' },
   { value: 'SHIPPING',     label: 'Zusenden',      icon: <LocalShippingIcon fontSize="small" />,  description: 'Per Post zuschicken (zzgl. Versandkosten)' },
-  { value: 'DROPOFF',      label: 'Vorbeibringen', icon: <DirectionsWalkIcon fontSize="small" />, description: 'Verleiher bringt das Buch vorbei' },
 ]
 
 interface BookEntry {
@@ -59,7 +57,7 @@ function AdminMultiReserveForm() {
   const dueDate = new Date(startDate)
   dueDate.setDate(dueDate.getDate() + durationDays)
 
-  const needsDate     = handoverMethod === 'PICKUP' || handoverMethod === 'MEETINGPOINT' || handoverMethod === 'DROPOFF'
+  const needsDate     = handoverMethod === 'PICKUP' || handoverMethod === 'MEETINGPOINT'
   const needsLocation = handoverMethod === 'MEETINGPOINT'
   const needsCost     = handoverMethod === 'SHIPPING'
 
@@ -97,29 +95,27 @@ function AdminMultiReserveForm() {
     if (validBooks.length === 0) { setSubmitError('Kein gültiges Buch hinzugefügt'); return }
     setSubmitError('')
     setSubmitting(true)
-    const errors: string[] = []
-    for (const book of validBooks) {
-      const body: Record<string, unknown> = {
-        bookId: book.barcode,
-        startDate: new Date(startDate).toISOString(),
-        durationDays,
-        notes: notes || undefined,
-        handoverMethod,
-      }
-      if (needsDate && handoverDate) body.handoverDate = new Date(handoverDate).toISOString()
-      if (needsLocation && handoverLocation) body.handoverLocation = handoverLocation
-      if (needsCost && handoverCost) body.handoverCost = parseFloat(handoverCost)
 
-      const res = await fetch('/api/loans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) { const d = await res.json(); errors.push(`${book.title}: ${d.error ?? 'Fehler'}`) }
+    const body: Record<string, unknown> = {
+      bookIds: validBooks.map((b) => b.barcode),
+      startDate: new Date(startDate).toISOString(),
+      durationDays,
+      notes: notes || undefined,
+      handoverMethod,
     }
+    if (needsDate && handoverDate) body.handoverDate = new Date(handoverDate).toISOString()
+    if (needsLocation && handoverLocation) body.handoverLocation = handoverLocation
+    if (needsCost && handoverCost) body.handoverCost = parseFloat(handoverCost)
+
+    const res = await fetch('/api/loans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
     setSubmitting(false)
-    if (errors.length > 0) {
-      setSubmitError(errors.join(' | '))
+    if (!res.ok) {
+      const d = await res.json()
+      setSubmitError(d.error ? (typeof d.error === 'string' ? d.error : JSON.stringify(d.error)) : 'Fehler')
     } else {
       setSubmitSuccess(true)
       setTimeout(() => router.push('/admin/loans'), 1200)
@@ -199,7 +195,7 @@ function AdminMultiReserveForm() {
                 ))}
               </RadioGroup>
               {needsDate && (
-                <TextField label={handoverMethod === 'PICKUP' ? 'Abholdatum' : handoverMethod === 'DROPOFF' ? 'Datum Vorbeibringen' : 'Treffpunkt-Datum'} type="date" value={handoverDate} onChange={(e) => setHandoverDate(e.target.value)} size="small" fullWidth sx={{ mt: 1.5 }} slotProps={{ htmlInput: { min: new Date().toISOString().slice(0, 10) }, inputLabel: { shrink: true } }} />
+                <TextField label={handoverMethod === 'PICKUP' ? 'Abholdatum' : 'Treffpunkt-Datum'} type="date" value={handoverDate} onChange={(e) => setHandoverDate(e.target.value)} size="small" fullWidth sx={{ mt: 1.5 }} slotProps={{ htmlInput: { min: new Date().toISOString().slice(0, 10) }, inputLabel: { shrink: true } }} />
               )}
               {needsLocation && (
                 <TextField label="Treffpunkt / Ort" value={handoverLocation} onChange={(e) => setHandoverLocation(e.target.value)} placeholder="z.B. Bibliothek, Zimmer 205" size="small" fullWidth sx={{ mt: 1.5 }} />

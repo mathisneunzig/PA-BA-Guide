@@ -2,9 +2,15 @@ jest.mock('../../lib/prisma', () => ({
   prisma: {
     $transaction: jest.fn(),
     book: { update: jest.fn() },
-    loan: {
+    loanGroup: {
       findUniqueOrThrow: jest.fn(),
       update: jest.fn(),
+    },
+    loanItem: {
+      findUniqueOrThrow: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
 }))
@@ -12,32 +18,44 @@ jest.mock('../../lib/prisma', () => ({
 import {
   computeDueDate,
   isOverdue,
-  activateLoan,
-  returnLoan,
-  cancelLoan,
+  activateLoanGroup,
+  returnLoanItem,
+  cancelLoanItem,
 } from '@/lib/loans/loan-service'
 import { LoanStatus } from '@prisma/client'
 
 const prismaMock = jest.requireMock<{ prisma: {
   $transaction: jest.Mock
   book: { update: jest.Mock }
-  loan: { findUniqueOrThrow: jest.Mock; update: jest.Mock }
+  loanGroup: { findUniqueOrThrow: jest.Mock; update: jest.Mock }
+  loanItem: { findUniqueOrThrow: jest.Mock; findMany: jest.Mock; update: jest.Mock; updateMany: jest.Mock }
 } }>('../../lib/prisma').prisma
 
 beforeEach(() => {
   jest.clearAllMocks()
 })
 
-const MOCK_LOAN = {
-  id: 'loan_1',
+const MOCK_GROUP = {
+  id: 'group_1',
   userId: 'user_1',
-  bookId: '0201234567897',
   status: LoanStatus.RESERVED,
   startDate: new Date('2026-04-16'),
   dueDate: new Date('2026-07-16'),
-  returnedAt: null,
   loanDurationDays: 91,
   notes: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  items: [
+    { id: 'item_1', groupId: 'group_1', bookId: '0201234567897', status: LoanStatus.RESERVED },
+  ],
+}
+
+const MOCK_ITEM = {
+  id: 'item_1',
+  groupId: 'group_1',
+  bookId: '0201234567897',
+  status: LoanStatus.ACTIVE,
+  returnedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -71,29 +89,31 @@ function mockTransaction(txMock: object) {
   prismaMock.$transaction.mockImplementation((fn: (tx: typeof txMock) => Promise<unknown>) => fn(txMock))
 }
 
-describe('activateLoan', () => {
+describe('activateLoanGroup', () => {
   it('throws when status is not RESERVED', async () => {
-    const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE }
+    const activeGroup = { ...MOCK_GROUP, status: LoanStatus.ACTIVE }
     const txMock = {
-      loan: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue(activeLoan),
+      loanGroup: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(activeGroup),
         update: jest.fn(),
       },
+      loanItem: { updateMany: jest.fn() },
     }
     mockTransaction(txMock)
-    await expect(activateLoan('loan_1')).rejects.toThrow('Cannot activate loan with status ACTIVE')
+    await expect(activateLoanGroup('group_1')).rejects.toThrow('Cannot activate loan group with status ACTIVE')
   })
 
-  it('transitions RESERVED → ACTIVE and recomputes dueDate', async () => {
+  it('transitions RESERVED → ACTIVE for all items', async () => {
     const txMock = {
-      loan: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue(MOCK_LOAN),
-        update: jest.fn().mockResolvedValue({ ...MOCK_LOAN, status: LoanStatus.ACTIVE }),
+      loanGroup: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(MOCK_GROUP),
+        update: jest.fn().mockResolvedValue({ ...MOCK_GROUP, status: LoanStatus.ACTIVE }),
       },
+      loanItem: { updateMany: jest.fn() },
     }
     mockTransaction(txMock)
-    await activateLoan('loan_1')
-    expect(txMock.loan.update).toHaveBeenCalledWith(
+    await activateLoanGroup('group_1')
+    expect(txMock.loanItem.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: LoanStatus.ACTIVE }),
       }),
@@ -101,25 +121,34 @@ describe('activateLoan', () => {
   })
 })
 
-describe('returnLoan', () => {
+describe('returnLoanItem', () => {
   it('throws when status is not ACTIVE or OVERDUE', async () => {
-    const reservedLoan = { ...MOCK_LOAN, status: LoanStatus.RESERVED }
+    const reservedItem = { ...MOCK_ITEM, status: LoanStatus.RESERVED }
     const txMock = {
-      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(reservedLoan), update: jest.fn() },
+      loanItem: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(reservedItem),
+        update: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([reservedItem]),
+      },
       book: { update: jest.fn() },
+      loanGroup: { update: jest.fn() },
     }
     mockTransaction(txMock)
-    await expect(returnLoan('loan_1')).rejects.toThrow('Cannot return loan with status RESERVED')
+    await expect(returnLoanItem('item_1')).rejects.toThrow('Cannot return item with status RESERVED')
   })
 
   it('increments availableCopies on success', async () => {
-    const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE }
     const txMock = {
-      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(activeLoan), update: jest.fn() },
+      loanItem: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(MOCK_ITEM),
+        update: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([{ ...MOCK_ITEM, status: LoanStatus.RETURNED }]),
+      },
       book: { update: jest.fn() },
+      loanGroup: { update: jest.fn() },
     }
     mockTransaction(txMock)
-    await returnLoan('loan_1')
+    await returnLoanItem('item_1')
     expect(txMock.book.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { availableCopies: { increment: 1 } },
@@ -128,35 +157,34 @@ describe('returnLoan', () => {
   })
 })
 
-describe('cancelLoan', () => {
+describe('cancelLoanItem', () => {
   it('throws when status is RETURNED (terminal state)', async () => {
-    const returnedLoan = { ...MOCK_LOAN, status: LoanStatus.RETURNED }
+    const returnedItem = { ...MOCK_ITEM, status: LoanStatus.RETURNED }
     const txMock = {
-      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(returnedLoan), update: jest.fn() },
+      loanItem: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(returnedItem),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
       book: { update: jest.fn() },
+      loanGroup: { update: jest.fn() },
     }
     mockTransaction(txMock)
-    await expect(cancelLoan('loan_1')).rejects.toThrow()
-  })
-
-  it('can cancel an ACTIVE loan (admin use case)', async () => {
-    const activeLoan = { ...MOCK_LOAN, status: LoanStatus.ACTIVE }
-    const txMock = {
-      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(activeLoan), update: jest.fn() },
-      book: { update: jest.fn() },
-    }
-    mockTransaction(txMock)
-    await cancelLoan('loan_1')
-    expect(txMock.loan.update).toHaveBeenCalled()
+    await expect(cancelLoanItem('item_1')).rejects.toThrow()
   })
 
   it('increments availableCopies on success', async () => {
     const txMock = {
-      loan: { findUniqueOrThrow: jest.fn().mockResolvedValue(MOCK_LOAN), update: jest.fn() },
+      loanItem: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ ...MOCK_ITEM, status: LoanStatus.RESERVED }),
+        update: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([{ ...MOCK_ITEM, status: LoanStatus.CANCELLED }]),
+      },
       book: { update: jest.fn() },
+      loanGroup: { update: jest.fn() },
     }
     mockTransaction(txMock)
-    await cancelLoan('loan_1')
+    await cancelLoanItem('item_1')
     expect(txMock.book.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { availableCopies: { increment: 1 } },
