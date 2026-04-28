@@ -164,7 +164,6 @@ export async function sendLoanReceiptEmail({
 
 export async function sendNewReservationEmail({
   to,
-  loanId,
   bookTitle,
   bookAuthor,
   regalnummer,
@@ -176,7 +175,6 @@ export async function sendNewReservationEmail({
   notes,
 }: {
   to: string
-  loanId: string
   bookTitle: string
   bookAuthor: string
   regalnummer?: string | null
@@ -211,6 +209,8 @@ export async function sendNewReservationEmail({
     }),
   })
 }
+
+export async function sendNewGuestEmail({
   to,
   userId,
   firstname,

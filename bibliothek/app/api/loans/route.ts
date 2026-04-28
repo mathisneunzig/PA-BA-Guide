@@ -119,7 +119,6 @@ export async function POST(request: NextRequest) {
         if (!admin.email) continue
         sendNewReservationEmail({
           to: admin.email,
-          loanId: loan.id,
           bookTitle: book.title,
           bookAuthor: book.author,
           regalnummer: book.regalnummer ?? undefined,
