@@ -62,10 +62,18 @@ function AdminMultiReserveForm() {
   const needsCost     = handoverMethod === 'SHIPPING'
 
   async function resolveBook(input: string): Promise<{ barcode: string; title: string; author: string } | null> {
+    // Try as EAN-13 barcode (exact 13 digits)
     if (/^\d{13}$/.test(input)) {
       const res = await fetch(`/api/books/${input}`)
       if (res.ok) { const b = await res.json(); return { barcode: b.id, title: b.title, author: b.author } }
     }
+    // Scanners sometimes drop the leading 0 — try padding to 13 digits
+    if (/^\d{12}$/.test(input)) {
+      const padded = `0${input}`
+      const res = await fetch(`/api/books/${padded}`)
+      if (res.ok) { const b = await res.json(); return { barcode: b.id, title: b.title, author: b.author } }
+    }
+    // Fall back to regalnummer lookup
     const res = await fetch(`/api/books/by-regalnummer/${encodeURIComponent(input)}`)
     if (res.ok) { const b = await res.json(); return { barcode: b.id, title: b.title, author: b.author } }
     return null

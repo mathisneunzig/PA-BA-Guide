@@ -3,9 +3,13 @@
 import { useState } from 'react'
 import {
   Alert, Box, Button, Card, CardActionArea, CardContent, CircularProgress,
-  Container, Divider, LinearProgress, TextField, Tooltip, Typography,
+  Container, Dialog, DialogContent, DialogTitle, Divider, IconButton,
+  LinearProgress, TextField, Tooltip, Typography,
 } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send'
+import PreviewIcon from '@mui/icons-material/Visibility'
+import MailOutlineIcon from '@mui/icons-material/Mail'
+import CloseIcon from '@mui/icons-material/Close'
 import NewspaperIcon from '@mui/icons-material/Newspaper'
 import BuildIcon from '@mui/icons-material/Build'
 import CelebrationIcon from '@mui/icons-material/Celebration'
@@ -101,7 +105,68 @@ export default function BroadcastPage() {
   const [result, setResult] = useState<{ sent: number; failed: number; errors: string[] } | null>(null)
   const [error, setError] = useState('')
 
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [testMailLoading, setTestMailLoading] = useState(false)
+  const [testMailResult, setTestMailResult] = useState<{ sent: number; failed: number; errors: string[] } | null>(null)
+  const [testMailError, setTestMailError] = useState('')
+
   const tpl = TEMPLATES.find((t) => t.id === selectedTemplate)!
+
+  function buildPayload() {
+    return {
+      subject: subject.trim(),
+      message: message.trim(),
+      template: selectedTemplate,
+      timeFrom: timeFrom.trim() || undefined,
+      timeTo: timeTo.trim() || undefined,
+    }
+  }
+
+  async function handlePreview() {
+    if (!subject.trim() || !message.trim()) { setError('Bitte Betreff und Nachricht eingeben.'); return }
+    setError('')
+    setPreviewLoading(true)
+    try {
+      const res = await fetch('/api/admin/broadcast/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...buildPayload(), sendTest: false }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Fehler beim Laden der Vorschau'); return }
+      setPreviewHtml(data.html)
+      setPreviewOpen(true)
+      setTestMailResult(null)
+      setTestMailError('')
+    } catch {
+      setError('Netzwerkfehler')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  async function handleSendTest() {
+    setTestMailLoading(true)
+    setTestMailResult(null)
+    setTestMailError('')
+    try {
+      const res = await fetch('/api/admin/broadcast/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...buildPayload(), sendTest: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setTestMailError(data.error ?? 'Fehler beim Senden'); return }
+      setTestMailResult(data)
+    } catch {
+      setTestMailError('Netzwerkfehler')
+    } finally {
+      setTestMailLoading(false)
+    }
+  }
 
   async function handleSend() {
     if (!subject.trim()) { setError('Bitte einen Betreff eingeben.'); return }
@@ -113,13 +178,7 @@ export default function BroadcastPage() {
       const res = await fetch('/api/admin/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: subject.trim(),
-          message: message.trim(),
-          template: selectedTemplate,
-          timeFrom: timeFrom.trim() || undefined,
-          timeTo: timeTo.trim() || undefined,
-        }),
+        body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Fehler beim Senden'); return }
@@ -138,7 +197,7 @@ export default function BroadcastPage() {
         <Box>
           <Typography variant="h5">Rundmail</Typography>
           <Typography variant="body2" color="text.secondary">
-            Nachricht an alle Nutzer senden
+            Nachricht an Nutzer mit Marketing-Einwilligung senden
           </Typography>
         </Box>
       </Box>
@@ -183,11 +242,7 @@ export default function BroadcastPage() {
       </Box>
 
       {/* Email preview header */}
-      <Box
-        sx={{
-          borderRadius: 1.5, overflow: 'hidden', mb: 3, border: '1px solid', borderColor: 'divider',
-        }}
-      >
+      <Box sx={{ borderRadius: 1.5, overflow: 'hidden', mb: 3, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ bgcolor: tpl.color, color: '#fff', px: 3, py: 2 }}>
           <Typography variant="caption" sx={{ opacity: 0.85, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 600 }}>
             {tpl.eyebrow}
@@ -296,7 +351,15 @@ export default function BroadcastPage() {
 
       {sending && <LinearProgress sx={{ mt: 2 }} />}
 
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+      <Box sx={{ mt: 2, display: 'flex', gap: 1.5, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <Button
+          variant="outlined"
+          startIcon={previewLoading ? <CircularProgress size={16} /> : <PreviewIcon />}
+          onClick={handlePreview}
+          disabled={previewLoading || sending || !subject.trim() || !message.trim()}
+        >
+          Vorschau
+        </Button>
         <Button
           variant="contained"
           size="large"
@@ -307,6 +370,55 @@ export default function BroadcastPage() {
           {sending ? 'Sende…' : 'Rundmail senden'}
         </Button>
       </Box>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PreviewIcon />
+            <Typography variant="h6">E-Mail-Vorschau</Typography>
+          </Box>
+          <IconButton onClick={() => setPreviewOpen(false)} size="small"><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {/* Test send area */}
+          <Box sx={{ px: 3, py: 2, bgcolor: 'background.default', borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                Testmail an konfigurierte Testgruppe senden (Einstellungen → Testgruppe)
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={testMailLoading ? <CircularProgress size={14} /> : <MailOutlineIcon />}
+                onClick={handleSendTest}
+                disabled={testMailLoading}
+              >
+                Testmail senden
+              </Button>
+            </Box>
+            {testMailError && (
+              <Alert severity="error" sx={{ mt: 1 }} onClose={() => setTestMailError('')}>{testMailError}</Alert>
+            )}
+            {testMailResult && (
+              <Alert
+                severity={testMailResult.failed === 0 ? 'success' : 'warning'}
+                sx={{ mt: 1 }}
+                onClose={() => setTestMailResult(null)}
+              >
+                {testMailResult.sent} gesendet{testMailResult.failed > 0 && `, ${testMailResult.failed} fehlgeschlagen`}
+              </Alert>
+            )}
+          </Box>
+          {/* HTML preview */}
+          <Box
+            component="iframe"
+            srcDoc={previewHtml}
+            sx={{ width: '100%', height: 600, border: 'none', display: 'block' }}
+            title="E-Mail-Vorschau"
+          />
+        </DialogContent>
+      </Dialog>
     </Container>
   )
 }

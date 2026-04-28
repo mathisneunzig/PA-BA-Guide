@@ -11,7 +11,7 @@ jest.mock('../../lib/prisma', () => ({
       delete: jest.fn(),
       count: jest.fn(),
     },
-    loan: { count: jest.fn() },
+    loanItem: { count: jest.fn() },
   },
 }))
 
@@ -197,7 +197,7 @@ describe('PUT /api/books/[barcode]', () => {
 describe('DELETE /api/books/[barcode]', () => {
   it('returns 409 if active loans exist', async () => {
     requireRole.mockResolvedValue(ADMIN_SESSION)
-    prisma.loan.count.mockResolvedValue(1) // active loans
+    prisma.loanItem.count.mockResolvedValue(1) // active loans
 
     const req = makeReq('DELETE', 'http://localhost/api/books/0209999999995')
     const res = await deleteBook(req, { params: Promise.resolve({ barcode: '0209999999995' }) })
@@ -206,7 +206,7 @@ describe('DELETE /api/books/[barcode]', () => {
 
   it('deletes book when no active loans', async () => {
     requireRole.mockResolvedValue(ADMIN_SESSION)
-    prisma.loan.count.mockResolvedValue(0)
+    prisma.loanItem.count.mockResolvedValue(0)
     prisma.book.delete.mockResolvedValue(MOCK_BOOK)
 
     const req = makeReq('DELETE', 'http://localhost/api/books/0209999999995')

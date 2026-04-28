@@ -16,7 +16,7 @@ const VALID_TEMPLATES: BroadcastTemplate[] = [
  * POST /api/admin/broadcast
  * Body: { subject, message, template, timeFrom?, timeTo? }
  *
- * Sends a broadcast email to all non-GUEST users.
+ * Sends a broadcast email to users who have given marketing consent.
  * Returns { sent: number, failed: number, errors: string[] }
  */
 export async function POST(request: NextRequest) {
@@ -41,8 +41,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Ungültige Vorlage' }, { status: 400 })
   }
 
+  // Broadcast emails require marketing consent
   const users = await prisma.user.findMany({
-    where: { role: { not: 'GUEST' } },
+    where: { role: { not: 'GUEST' }, marketingConsent: true },
     select: { email: true },
   })
 

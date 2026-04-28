@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { firstname, lastname, username, email, phone, password } = parsed.data
+    const { firstname, lastname, username, email, phone, password,
+            street, housenr, zipcode, city, country, marketingConsent } = parsed.data
 
     const [existingEmail, existingUsername] = await Promise.all([
       prisma.user.findUnique({ where: { email } }),
@@ -46,6 +47,14 @@ export async function POST(request: NextRequest) {
         email_verify_token: verifyToken,
         email_verify_expires: verifyExpires,
         email_verified: false,
+        // Optional address from step 2
+        street:  street  || null,
+        housenr: housenr || null,
+        zipcode: zipcode || null,
+        city:    city    || null,
+        country: country || null,
+        // Consent
+        marketingConsent: marketingConsent ?? false,
       },
       select: { id: true, email: true, username: true, firstname: true, lastname: true, phone: true, createdAt: true },
     })

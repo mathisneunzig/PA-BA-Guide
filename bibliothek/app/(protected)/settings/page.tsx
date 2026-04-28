@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import {
@@ -10,17 +10,52 @@ import {
 import SaveIcon from '@mui/icons-material/Save'
 import SettingsIcon from '@mui/icons-material/Settings'
 
+type FormState = {
+  firstname: string; lastname: string; username: string; phone: string
+  street: string; housenr: string; zipcode: string; city: string; country: string
+  del_street: string; del_housenr: string; del_zipcode: string; del_city: string; del_country: string
+}
+
+const EMPTY: FormState = {
+  firstname: '', lastname: '', username: '', phone: '',
+  street: '', housenr: '', zipcode: '', city: '', country: '',
+  del_street: '', del_housenr: '', del_zipcode: '', del_city: '', del_country: '',
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [form, setForm] = useState({
-    firstname: '', lastname: '', username: '', phone: '',
-    street: '', housenr: '', zipcode: '', city: '', country: '',
-    del_street: '', del_housenr: '', del_zipcode: '', del_city: '', del_country: '',
-  })
+  const [form, setForm] = useState<FormState>(EMPTY)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [initializing, setInitializing] = useState(true)
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch(`/api/users/${session.user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setForm({
+          firstname:   data.firstname   ?? '',
+          lastname:    data.lastname    ?? '',
+          username:    data.username    ?? '',
+          phone:       data.phone       ?? '',
+          street:      data.street      ?? '',
+          housenr:     data.housenr     ?? '',
+          zipcode:     data.zipcode     ?? '',
+          city:        data.city        ?? '',
+          country:     data.country     ?? '',
+          del_street:  data.del_street  ?? '',
+          del_housenr: data.del_housenr ?? '',
+          del_zipcode: data.del_zipcode ?? '',
+          del_city:    data.del_city    ?? '',
+          del_country: data.del_country ?? '',
+        })
+      })
+      .catch(() => {})
+      .finally(() => setInitializing(false))
+  }, [session?.user?.id])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -32,12 +67,11 @@ export default function SettingsPage() {
     setError('')
     setMessage('')
     setLoading(true)
-    const payload = Object.fromEntries(Object.entries(form).filter(([, v]) => v !== ''))
     try {
       const res = await fetch(`/api/users/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(form),
       })
       const data = await res.json()
       if (!res.ok) setError(data.error ?? 'Aktualisierung fehlgeschlagen')
@@ -49,9 +83,17 @@ export default function SettingsPage() {
     }
   }
 
-  const tf = (label: string, name: keyof typeof form, type = 'text') => (
-    <TextField key={name} label={label} name={name} type={type} value={form[name]} onChange={handleChange} fullWidth placeholder={`Aktuellen Wert überschreiben`} size="small" />
+  const tf = (label: string, name: keyof FormState, type = 'text') => (
+    <TextField key={name} label={label} name={name} type={type} value={form[name]} onChange={handleChange} fullWidth size="small" />
   )
+
+  if (initializing) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    )
+  }
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
