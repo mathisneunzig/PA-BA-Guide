@@ -21,12 +21,18 @@ import is from '@/public/locales/is.json'
 import pt from '@/public/locales/pt.json'
 import cs from '@/public/locales/cs.json'
 import pl from '@/public/locales/pl.json'
+import sr from '@/public/locales/sr.json'
+import hr from '@/public/locales/hr.json'
+import sl from '@/public/locales/sl.json'
+import sk from '@/public/locales/sk.json'
+import mk from '@/public/locales/mk.json'
 
 const DEFAULT_LOCALE = 'en'
 
 const VALID_LOCALES = [
   'de','en','fr','es','ja','zh','ko','tr','ru','uk',
   'nl','nl-BE','sv','da','fi','no','is','pt','cs','pl',
+  'sr','hr','sl','sk','mk',
 ]
 
 export function getStoredLocale(): string {
@@ -69,6 +75,12 @@ if (!i18n.isInitialized) {
       pt: { translation: pt },
       cs: { translation: cs },
       pl: { translation: pl },
+      sr: { translation: sr },
+      hr: { translation: hr },
+      sl: { translation: sl },
+      sk: { translation: sk },
+      mk: { translation: mk },
+      sq: { translation: sq },
     },
     // Always start with 'en' so SSR and initial client render match.
     // Providers will call i18n.changeLanguage() after hydration.

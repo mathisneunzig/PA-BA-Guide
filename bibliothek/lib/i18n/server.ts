@@ -18,16 +18,23 @@ import is from '@/public/locales/is.json'
 import pt from '@/public/locales/pt.json'
 import cs from '@/public/locales/cs.json'
 import pl from '@/public/locales/pl.json'
+import sr from '@/public/locales/sr.json'
+import hr from '@/public/locales/hr.json'
+import sl from '@/public/locales/sl.json'
+import sk from '@/public/locales/sk.json'
+import mk from '@/public/locales/mk.json'
 
 const TRANSLATIONS = {
   de, en, fr, es, ja, zh, ko, tr, ru, uk,
   nl, 'nl-BE': nlBE, sv, da, fi, no, is, pt, cs, pl,
+  sr, hr, sl, sk, mk
 } as const
 
 export type Locale = keyof typeof TRANSLATIONS
 export const SUPPORTED_LOCALES: Locale[] = [
   'de','en','fr','es','ja','zh','ko','tr','ru','uk',
   'nl','nl-BE','sv','da','fi','no','is','pt','cs','pl',
+  'sr','hr','sl','sk', 'mk',
 ]
 
 export function getT(locale: string = 'en') {
