@@ -18,6 +18,15 @@ export const RegisterSchema = z
       .regex(/[0-9]/, 'Password must contain at least one number')
       .regex(/[^a-zA-Z0-9]/, 'Password must contain at least one special character'),
     passwordConfirm: z.string(),
+    // Optional address fields (step 2)
+    street: z.string().optional(),
+    housenr: z.string().optional(),
+    zipcode: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    // Consent
+    marketingConsent: z.boolean().default(false),
+    agbAccepted: z.literal(true, { message: 'Du musst den AGB zustimmen' }),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: 'Passwords do not match',

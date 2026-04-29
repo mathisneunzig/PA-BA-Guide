@@ -6,6 +6,8 @@ Die folgenden (formalen) Vorgaben orientieren sich an der Prüfungsordnung der D
 
 ⚠️ Diese Liste an Tipps & Tricks ersetzt kein persönliches Gespräch. Die Empfehlung ist, sich am Anfang (evtl. mit der Struktur) in einem Call zu treffen und die Arbeit in Kürze zu besprechen!
 
+Eine kleine Liste an Büchern zu IT-related Themen, die ausgeliehen werden können, befindet sich hier: https://library.neunziglabs.de/
+
 ---
 
 Kontakt

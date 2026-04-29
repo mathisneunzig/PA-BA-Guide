@@ -2,9 +2,11 @@
 
 jest.mock('../../lib/prisma', () => ({
   prisma: {
-    $transaction: jest.fn(),
-    loan: {
+    loanItem: {
       findFirst: jest.fn(),
+    },
+    loanGroup: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
     book: {
@@ -22,6 +24,10 @@ jest.mock('../../lib/email/send', () => ({
   sendBookAvailableEmail: jest.fn().mockResolvedValue(undefined),
 }))
 
+jest.mock('../../lib/loans/loan-service', () => ({
+  returnLoanItem: jest.fn().mockResolvedValue(undefined),
+}))
+
 import { POST as adminReturn } from '@/app/api/admin/return/route'
 import { NextRequest } from 'next/server'
 import { LoanStatus } from '@prisma/client'
@@ -29,6 +35,7 @@ import { LoanStatus } from '@prisma/client'
 const { prisma } = jest.requireMock('../../lib/prisma')
 const { requireRole } = jest.requireMock('../../lib/auth/dal')
 const { sendBookAvailableEmail } = jest.requireMock('../../lib/email/send')
+const { returnLoanItem } = jest.requireMock('../../lib/loans/loan-service')
 
 const ADMIN_SESSION = { user: { id: 'admin_1', role: 'ADMIN' } }
 
@@ -58,27 +65,10 @@ describe('POST /api/admin/return', () => {
     expect(res.status).toBe(400)
   })
 
-  it('marks loan as RETURNED and increments availableCopies', async () => {
-    const mockLoan = {
-      id: 'loan_1',
-      bookId: '0209999999995',
-      userId: 'stu_1',
-      status: LoanStatus.ACTIVE,
-    }
-
-    prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      const txMock = {
-        loan: {
-          findFirst: jest.fn().mockResolvedValue(mockLoan),
-          update: jest.fn().mockResolvedValue({ ...mockLoan, status: LoanStatus.RETURNED }),
-        },
-        book: { update: jest.fn() },
-      }
-      return fn(txMock)
-    })
-
-    // No next reservation
-    prisma.loan.findFirst.mockResolvedValue(null)
+  it('marks loan item as RETURNED via returnLoanItem', async () => {
+    prisma.loanItem.findFirst
+      .mockResolvedValueOnce({ id: 'item_1', bookId: '0209999999995', status: LoanStatus.ACTIVE })
+      .mockResolvedValueOnce(null) // no next reservation
 
     const req = makeReq({ userId: 'stu_1', bookIds: ['0209999999995'] })
     const res = await adminReturn(req)
@@ -87,19 +77,11 @@ describe('POST /api/admin/return', () => {
     expect(res.status).toBe(200)
     expect(json.results).toHaveLength(1)
     expect(json.results[0].ok).toBe(true)
+    expect(returnLoanItem).toHaveBeenCalledWith('item_1')
   })
 
   it('returns error result when no active loan found for book', async () => {
-    prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      const txMock = {
-        loan: {
-          findFirst: jest.fn().mockResolvedValue(null), // no active loan
-          update: jest.fn(),
-        },
-        book: { update: jest.fn() },
-      }
-      return fn(txMock)
-    })
+    prisma.loanItem.findFirst.mockResolvedValue(null) // no active loan item
 
     const req = makeReq({ userId: 'stu_1', bookIds: ['0209999999995'] })
     const res = await adminReturn(req)
@@ -111,29 +93,14 @@ describe('POST /api/admin/return', () => {
   })
 
   it('notifies the next reserved user after return', async () => {
-    const mockLoan = {
-      id: 'loan_1',
-      bookId: '0209999999995',
-      userId: 'stu_1',
-      status: LoanStatus.ACTIVE,
-    }
-
-    prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      const txMock = {
-        loan: {
-          findFirst: jest.fn().mockResolvedValue(mockLoan),
-          update: jest.fn().mockResolvedValue({ ...mockLoan, status: LoanStatus.RETURNED }),
-        },
-        book: { update: jest.fn() },
-      }
-      return fn(txMock)
-    })
-
-    // Next reservation waiting
-    prisma.loan.findFirst.mockResolvedValue({
-      user: { email: 'next@example.com' },
-      book: { title: 'Test Book', regalnummer: 'INF0001' },
-    })
+    prisma.loanItem.findFirst
+      // first call: find active item for this user
+      .mockResolvedValueOnce({ id: 'item_1', bookId: '0209999999995', status: LoanStatus.ACTIVE })
+      // second call: find next reservation
+      .mockResolvedValueOnce({
+        group: { user: { email: 'next@example.com' } },
+        book: { title: 'Test Book', regalnummer: 'INF0001' },
+      })
 
     const req = makeReq({ userId: 'stu_1', bookIds: ['0209999999995'] })
     await adminReturn(req)
@@ -146,26 +113,18 @@ describe('POST /api/admin/return', () => {
   })
 
   it('handles multiple books, returning all results', async () => {
-    const barcodes = ['0209999999995', '0209999999996']
+    prisma.loanItem.findFirst
+      .mockResolvedValueOnce({ id: 'item_1', bookId: '0209999999995', status: LoanStatus.ACTIVE })
+      .mockResolvedValueOnce(null) // no next reservation for first
+      .mockResolvedValueOnce({ id: 'item_2', bookId: '0209999999996', status: LoanStatus.ACTIVE })
+      .mockResolvedValueOnce(null) // no next reservation for second
 
-    prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      const txMock = {
-        loan: {
-          findFirst: jest.fn().mockResolvedValue({
-            id: 'loan_x', bookId: barcodes[0], userId: 'stu_1', status: LoanStatus.ACTIVE,
-          }),
-          update: jest.fn(),
-        },
-        book: { update: jest.fn() },
-      }
-      return fn(txMock)
-    })
-    prisma.loan.findFirst.mockResolvedValue(null)
-
-    const req = makeReq({ userId: 'stu_1', bookIds: barcodes })
+    const req = makeReq({ userId: 'stu_1', bookIds: ['0209999999995', '0209999999996'] })
     const res = await adminReturn(req)
     const json = await res.json()
 
     expect(json.results).toHaveLength(2)
+    expect(json.results[0].ok).toBe(true)
+    expect(json.results[1].ok).toBe(true)
   })
 })

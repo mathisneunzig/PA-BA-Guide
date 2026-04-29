@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, Chip, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 export const PROGRAMMIERSPRACHEN = [
   'Python',
@@ -25,6 +26,8 @@ interface Props {
 }
 
 export default function ProgrammiersprachePicker({ selected, onChange }: Props) {
+  const { t } = useTranslation()
+
   function toggle(lang: string) {
     if (selected.includes(lang)) {
       onChange(selected.filter((l) => l !== lang))
@@ -36,7 +39,7 @@ export default function ProgrammiersprachePicker({ selected, onChange }: Props) 
   return (
     <Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-        Programmiersprachen (mehrere wählbar)
+        {t('books.langLabel')}
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
         {PROGRAMMIERSPRACHEN.map((lang) => (

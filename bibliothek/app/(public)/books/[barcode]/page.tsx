@@ -1,7 +1,9 @@
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, notFound } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
+import { useSession } from 'next-auth/react'
 import {
   Box, Button, Card, CardContent, Chip, Container,
   Divider, Grid, Stack, Typography,
@@ -12,23 +14,42 @@ import LoginIcon from '@mui/icons-material/Login'
 import BibtexButton from '@/app/components/BibtexButton'
 import CartButton from '@/app/components/CartButton'
 
-type Params = { params: Promise<{ barcode: string }> }
+interface Book {
+  id: string; title: string; author: string; coverUrl?: string | null
+  publisher?: string | null; year?: number | null; regalnummer?: string | null
+  availableCopies: number; totalCopies: number; tags?: string | null
+  language?: string | null; loanDurationWeeks: number; isbn13?: string | null
+  description?: string | null
+}
 
-export default async function BookDetailPage({ params }: Params) {
-  const { barcode } = await params
-  const book = await prisma.book.findUnique({ where: { id: barcode } })
-  if (!book) notFound()
+export default function BookDetailPage() {
+  const params = useParams<{ barcode: string }>()
+  const { t } = useTranslation()
+  const { data: session } = useSession()
+  const [book, setBook] = useState<Book | null>(null)
+  const [notFound404, setNotFound404] = useState(false)
 
-  const session = await auth()
-  const role = session?.user?.role
   const isLoggedIn = !!session?.user
-  const isAdmin = role === 'ADMIN'
   const canUseCart = isLoggedIn
+
+  useEffect(() => {
+    fetch(`/api/books/${params.barcode}`)
+      .then((r) => {
+        if (r.status === 404) { setNotFound404(true); return null }
+        return r.json()
+      })
+      .then((data) => { if (data) setBook(data) })
+      .catch(() => {})
+  }, [params.barcode])
+
+  if (notFound404) return null // next/navigation notFound() can't be called async in client
+
+  if (!book) return null
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Button href="/books" startIcon={<ArrowBackIcon />} sx={{ mb: 3 }} variant="text" color="inherit">
-        Zurück zum Katalog
+        {t('books.backToCatalog')}
       </Button>
 
       <Card>
@@ -62,19 +83,21 @@ export default async function BookDetailPage({ params }: Params) {
               <Box sx={{ mt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {book.regalnummer && (
                   <Chip
-                    label={`Regal: ${book.regalnummer}`}
+                    label={t('books.shelf', { regalnummer: book.regalnummer })}
                     size="small"
                     color="primary"
                     variant="outlined"
                     sx={{ fontFamily: 'monospace', fontWeight: 600 }}
                   />
                 )}
-                {book.tags && book.tags.split(',').map((t) => (
-                  <Chip key={t} label={t.trim()} size="small" variant="outlined" />
+                {book.tags && book.tags.split(',').map((tag) => (
+                  <Chip key={tag} label={tag.trim()} size="small" variant="outlined" />
                 ))}
                 {book.language && <Chip label={book.language.toUpperCase()} size="small" variant="outlined" />}
                 <Chip
-                  label={book.availableCopies > 0 ? `Verfügbar (${book.availableCopies}/${book.totalCopies})` : 'Nicht verfügbar'}
+                  label={book.availableCopies > 0
+                    ? t('books.available', { available: book.availableCopies, total: book.totalCopies })
+                    : t('books.unavailable')}
                   color={book.availableCopies > 0 ? 'success' : 'default'}
                   size="small"
                 />
@@ -82,15 +105,13 @@ export default async function BookDetailPage({ params }: Params) {
 
               <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
                 {canUseCart ? (
-                  <>
-                    <CartButton
-                      book={{ id: book.id, title: book.title, author: book.author, coverUrl: book.coverUrl }}
-                      size="medium"
-                    />
-                  </>
+                  <CartButton
+                    book={{ id: book.id, title: book.title, author: book.author, coverUrl: book.coverUrl }}
+                    size="medium"
+                  />
                 ) : !isLoggedIn ? (
                   <Button href="/login" variant="outlined" startIcon={<LoginIcon />}>
-                    Anmelden zum Reservieren
+                    {t('books.loginToReserve')}
                   </Button>
                 ) : null}
               </Stack>
@@ -100,7 +121,7 @@ export default async function BookDetailPage({ params }: Params) {
           {book.description && (
             <>
               <Divider sx={{ my: 2.5 }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>Beschreibung</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>{t('books.description')}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
                 {book.description}
               </Typography>
@@ -111,14 +132,14 @@ export default async function BookDetailPage({ params }: Params) {
           <Grid container spacing={1}>
             {book.isbn13 && (
               <>
-                <Grid size={5}><Typography variant="caption" color="text.secondary">ISBN-13</Typography></Grid>
+                <Grid size={5}><Typography variant="caption" color="text.secondary">{t('books.isbn13')}</Typography></Grid>
                 <Grid size={7}><Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{book.isbn13}</Typography></Grid>
               </>
             )}
-            <Grid size={5}><Typography variant="caption" color="text.secondary">Barcode</Typography></Grid>
+            <Grid size={5}><Typography variant="caption" color="text.secondary">{t('books.barcode')}</Typography></Grid>
             <Grid size={7}><Typography variant="caption" sx={{ fontFamily: 'monospace' }}>{book.id}</Typography></Grid>
-            <Grid size={5}><Typography variant="caption" color="text.secondary">Max. Ausleihdauer</Typography></Grid>
-            <Grid size={7}><Typography variant="caption">{book.loanDurationWeeks} Wochen</Typography></Grid>
+            <Grid size={5}><Typography variant="caption" color="text.secondary">{t('books.maxLoanDuration')}</Typography></Grid>
+            <Grid size={7}><Typography variant="caption">{t('books.weeks', { count: book.loanDurationWeeks })}</Typography></Grid>
           </Grid>
 
           <Box sx={{ mt: 2 }}>

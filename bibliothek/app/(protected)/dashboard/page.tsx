@@ -1,5 +1,8 @@
-import { getSessionUser } from '@/lib/auth/dal'
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useTranslation } from 'react-i18next'
 import {
   Alert, Box, Button, Card, CardActionArea, CardContent,
   Container, Chip, Grid, Typography,
@@ -9,38 +12,52 @@ import PersonIcon from '@mui/icons-material/Person'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
-import Link from 'next/link'
 
-export default async function DashboardPage() {
-  const user = await getSessionUser()
+interface Stats { activeLoans: number; overdueLoans: number }
 
-  const [activeLoans, overdueLoans] = await Promise.all([
-    prisma.loan.count({ where: { userId: user!.id, status: 'ACTIVE' } }),
-    prisma.loan.count({ where: { userId: user!.id, status: 'OVERDUE' } }),
-  ])
+export default function DashboardPage() {
+  const { data: session } = useSession()
+  const { t } = useTranslation()
+  const [stats, setStats] = useState<Stats>({ activeLoans: 0, overdueLoans: 0 })
+  const [emailVerified, setEmailVerified] = useState(true)
+  const user = session?.user
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetch(`/api/users/${user.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setEmailVerified(data.email_verified ?? true)
+      })
+      .catch(() => {})
+    fetch('/api/loans/stats')
+      .then((r) => r.json())
+      .then((data) => setStats(data))
+      .catch(() => {})
+  }, [user?.id])
 
   const quickLinks = [
-    { href: '/books', label: 'Bücherkatalog', icon: <MenuBookIcon />, desc: 'Verfügbare Bücher durchsuchen' },
-    { href: '/my-loans', label: 'Meine Ausleihen', icon: <BookmarkIcon />, desc: 'Aktuelle und vergangene Ausleihen' },
-    { href: '/profile', label: 'Mein Profil', icon: <PersonIcon />, desc: 'Persönliche Informationen verwalten' },
+    { href: '/books', label: t('dashboard.browseCatalog'), icon: <MenuBookIcon />, desc: t('dashboard.browseCatalogDesc') },
+    { href: '/my-loans', label: t('dashboard.myLoans'), icon: <BookmarkIcon />, desc: t('dashboard.myLoansDesc') },
+    { href: '/profile', label: t('dashboard.myProfile'), icon: <PersonIcon />, desc: t('dashboard.myProfileDesc') },
   ]
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <DashboardIcon sx={{ fontSize: 36, color: 'primary.main' }} />
-        <Typography variant="h5">Dashboard</Typography>
+        <Typography variant="h5">{t('dashboard.title')}</Typography>
       </Box>
 
-      {!user?.email_verified && (
+      {!emailVerified && (
         <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb: 3 }}>
-          Deine E-Mail-Adresse ist noch nicht verifiziert. Bitte überprüfe dein Postfach.
+          {t('dashboard.emailNotVerified')}
         </Alert>
       )}
 
-      {overdueLoans > 0 && (
+      {stats.overdueLoans > 0 && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          Du hast {overdueLoans} überfällige Ausleihe{overdueLoans > 1 ? 'n' : ''}. Bitte gib die Bücher zurück.
+          {t('dashboard.overdueWarning', { count: stats.overdueLoans, suffix: stats.overdueLoans > 1 ? 'n' : '' })}
         </Alert>
       )}
 
@@ -49,7 +66,7 @@ export default async function DashboardPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
               <Typography variant="h6">
-                Willkommen, {user?.firstname ?? user?.username}!
+                {t('dashboard.welcome', { name: user?.name ?? user?.email ?? '' })}
               </Typography>
               <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
             </Box>
@@ -60,13 +77,13 @@ export default async function DashboardPage() {
             />
           </Box>
 
-          {(activeLoans > 0 || overdueLoans > 0) && (
+          {(stats.activeLoans > 0 || stats.overdueLoans > 0) && (
             <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-              {activeLoans > 0 && (
-                <Chip label={`${activeLoans} aktiv`} color="success" size="small" variant="outlined" />
+              {stats.activeLoans > 0 && (
+                <Chip label={t('dashboard.activeLoans', { count: stats.activeLoans })} color="success" size="small" variant="outlined" />
               )}
-              {overdueLoans > 0 && (
-                <Chip label={`${overdueLoans} überfällig`} color="error" size="small" variant="outlined" />
+              {stats.overdueLoans > 0 && (
+                <Chip label={t('dashboard.overdueLoans', { count: stats.overdueLoans })} color="error" size="small" variant="outlined" />
               )}
             </Box>
           )}
@@ -91,7 +108,7 @@ export default async function DashboardPage() {
 
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Button href="/books" variant="contained" startIcon={<BookmarkIcon />}>
-          Bücher reservieren
+          {t('dashboard.reserveBooks')}
         </Button>
       </Box>
     </Container>

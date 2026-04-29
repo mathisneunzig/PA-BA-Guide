@@ -18,6 +18,7 @@ import LibraryAddIcon from '@mui/icons-material/LibraryAdd'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import GroupIcon from '@mui/icons-material/Group'
 import SendIcon from '@mui/icons-material/Send'
+import FeedbackIcon from '@mui/icons-material/Feedback'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -28,30 +29,13 @@ import { useSession, signOut } from 'next-auth/react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useColorMode } from '@/app/providers'
 import { useCart } from '@/lib/cart/CartContext'
+import FeedbackButton from '@/app/components/FeedbackButton'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 
 const DRAWER_W = 220
-
-const NAV_LINKS = [
-  { label: 'Bücher', href: '/books', icon: <MenuBookIcon /> },
-]
-// Student/user links — no multi-loan, cart instead
-const PROTECTED_LINKS = [
-  { label: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Meine Ausleihen', href: '/my-loans', icon: <BookmarkIcon /> },
-  { label: 'Profil', href: '/profile', icon: <PersonIcon /> },
-  { label: 'Einstellungen', href: '/settings', icon: <SettingsIcon /> },
-]
-const ADMIN_LINKS = [
-  { label: 'Bücher verwalten', href: '/admin/books', icon: <ManageSearchIcon /> },
-  { label: 'Ausleihen verwalten', href: '/admin/loans', icon: <AssignmentIcon /> },
-  { label: 'Sammelausleihe', href: '/admin/loans/multi', icon: <LibraryAddIcon /> },
-  { label: 'Sammelreservierung', href: '/admin/loans/reserve', icon: <BookmarkAddIcon /> },
-  { label: 'Rückgabe', href: '/admin/return', icon: <AssignmentReturnIcon /> },
-  { label: 'Benutzer verwalten', href: '/admin/users', icon: <GroupIcon /> },
-  { label: 'Rundmail', href: '/admin/broadcast', icon: <SendIcon /> },
-]
 
 interface NavItemProps {
   label: string
@@ -90,10 +74,31 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
   useEffect(() => { setMounted(true) }, [])
   const { mode, toggle: toggleColorMode } = useColorMode()
   const { items: cartItems } = useCart()
+  const { t } = useTranslation()
 
   const isAdmin = session?.user?.role === 'ADMIN'
   const isLoggedIn = !!session?.user
   const showCart = mounted && isLoggedIn
+
+  const NAV_LINKS = [
+    { label: t('nav.books'), href: '/books', icon: <MenuBookIcon /> },
+  ]
+  const PROTECTED_LINKS = [
+    { label: t('nav.dashboard'), href: '/dashboard', icon: <DashboardIcon /> },
+    { label: t('nav.myLoans'), href: '/my-loans', icon: <BookmarkIcon /> },
+    { label: t('nav.profile'), href: '/profile', icon: <PersonIcon /> },
+    { label: t('nav.settings'), href: '/settings', icon: <SettingsIcon /> },
+  ]
+  const ADMIN_LINKS = [
+    { label: t('nav.adminBooks'), href: '/admin/books', icon: <ManageSearchIcon /> },
+    { label: t('nav.adminLoans'), href: '/admin/loans', icon: <AssignmentIcon /> },
+    { label: t('nav.adminMultiLoan'), href: '/admin/loans/multi', icon: <LibraryAddIcon /> },
+    { label: t('nav.adminReserve'), href: '/admin/loans/reserve', icon: <BookmarkAddIcon /> },
+    { label: t('nav.adminReturn'), href: '/admin/return', icon: <AssignmentReturnIcon /> },
+    { label: t('nav.adminUsers'), href: '/admin/users', icon: <GroupIcon /> },
+    { label: t('nav.adminBroadcast'), href: '/admin/broadcast', icon: <SendIcon /> },
+    { label: t('nav.adminFeedback'), href: '/admin/feedback', icon: <FeedbackIcon /> },
+  ]
 
   async function handleSignOut() {
     setAnchorEl(null)
@@ -139,7 +144,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
             {/* Cart — for all logged-in users */}
             {showCart && (
               <NavItem
-                label="Warenkorb"
+                label={t('nav.cart')}
                 href="/cart"
                 icon={<ShoppingCartIcon />}
                 active={isActive('/cart')}
@@ -153,7 +158,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
           <>
             <Divider sx={{ my: 0.5 }} />
             <Typography variant="caption" color="text.disabled" sx={{ px: 2, py: 0.5, display: 'block' }}>
-              Admin
+              {t('nav.admin')}
             </Typography>
             {ADMIN_LINKS.map((l) => (
               <NavItem key={l.href} {...l} active={isActive(l.href)} />
@@ -167,13 +172,27 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
       {/* Dark mode toggle */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 0.75 }}>
         <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-          {mode === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          {mode === 'dark' ? t('nav.darkMode') : t('nav.lightMode')}
         </Typography>
-        <Tooltip title={mode === 'dark' ? 'Light Mode' : 'Dark Mode'} placement="right" arrow>
+        <Tooltip title={mode === 'dark' ? t('nav.lightMode') : t('nav.darkMode')} placement="right" arrow>
           <IconButton size="small" onClick={toggleColorMode} color="inherit">
             {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
+      </Box>
+
+      <Divider />
+
+      {/* Language switcher */}
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 0.75 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+          {t('settings.language')}
+        </Typography>
+        <Tooltip title={t('settings.language')} placement="right" arrow>
+        <LanguageSwitcher />
+        </Tooltip>
+      </Box>
+      <Box sx={{ px: 2, py: 0.75 }}>
       </Box>
 
       <Divider />
@@ -200,16 +219,16 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
               <Divider />
               <MenuItem component={Link} href="/profile" onClick={() => setAnchorEl(null)}>
                 <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
-                Profil
+                {t('nav.profile')}
               </MenuItem>
               <MenuItem component={Link} href="/settings" onClick={() => setAnchorEl(null)}>
                 <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-                Einstellungen
+                {t('nav.settings')}
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleSignOut} sx={{ color: 'error.main' }}>
                 <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>
-                Abmelden
+                {t('nav.logout')}
               </MenuItem>
             </Menu>
           </>
@@ -218,7 +237,7 @@ function DrawerContent({ onClose }: { onClose?: () => void }) {
             <ListItemIcon sx={{ minWidth: 0, mr: 1.5, justifyContent: 'center' }}>
               <LoginIcon />
             </ListItemIcon>
-            <ListItemText primary="Anmelden" slotProps={{ primary: { variant: 'body2' } }} />
+            <ListItemText primary={t('nav.login')} slotProps={{ primary: { variant: 'body2' } }} />
           </ListItemButton>
         )}
       </Box>
@@ -276,6 +295,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
           </Box>
         )}
         {children}
+        <FeedbackButton />
       </Box>
     </Box>
   )

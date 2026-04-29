@@ -18,6 +18,8 @@
     .info-card td { padding: 5px 0; font-size: 14px; vertical-align: top; }
     .info-card td:first-child { color: #666; width: 40%; }
     .info-card td:last-child { font-weight: 500; color: #1a1a1a; }
+    .book-list { margin: 0; padding: 0 0 0 18px; }
+    .book-list li { margin: 3px 0; font-size: 14px; font-weight: 500; }
     .cta { display: block; text-align: center; background: #2e7d32; color: #fff; text-decoration: none; border-radius: 6px; padding: 14px 24px; font-size: 16px; font-weight: 700; margin: 0 0 24px; }
     .hint { font-size: 12px; color: #999; line-height: 1.5; }
     .footer { background: #f9f9f9; border-top: 1px solid #eee; padding: 16px 32px; font-size: 12px; color: #888; }
@@ -27,7 +29,7 @@
   <div class="container">
     <div class="header">
       <div class="header-eyebrow">📬 Neue Reservierung</div>
-      <h1>{{bookTitle}}</h1>
+      <h1>{{bookCount}} Buch{{bookCountSuffix}} reserviert</h1>
       <div class="header-brand">📚 Bibliothek</div>
     </div>
     <div class="body">
@@ -35,9 +37,7 @@
 
       <div class="info-card">
         <table>
-          <tr><td>Buch</td><td>{{bookTitle}}</td></tr>
-          <tr><td>Autor</td><td>{{bookAuthor}}</td></tr>
-          {{#if regalnummer}}<tr><td>Regal</td><td>{{regalnummer}}</td></tr>{{/if}}
+          <tr><td>Bücher</td><td><ul class="book-list">{{bookList}}</ul></td></tr>
           <tr><td>Nutzer</td><td>{{userName}}</td></tr>
           <tr><td>E-Mail</td><td>{{userEmail}}</td></tr>
           <tr><td>Startdatum</td><td>{{startDate}}</td></tr>

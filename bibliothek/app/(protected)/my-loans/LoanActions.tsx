@@ -2,19 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { LoanStatus } from '@prisma/client'
-import {
-  Box, Button, Chip, Typography,
-} from '@mui/material'
+import { Button } from '@mui/material'
 import CancelIcon from '@mui/icons-material/Cancel'
 
 interface Props {
-  loanId: string
+  itemId: string
   status: LoanStatus
 }
 
-export default function LoanActions({ loanId, status }: Props) {
+export default function LoanActions({ itemId, status }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   if (status !== 'RESERVED') return null
@@ -22,7 +22,7 @@ export default function LoanActions({ loanId, status }: Props) {
   async function handleCancel() {
     setLoading(true)
     try {
-      await fetch(`/api/loans/${loanId}`, { method: 'DELETE' })
+      await fetch(`/api/loans/${itemId}`, { method: 'DELETE' })
       router.refresh()
     } finally {
       setLoading(false)
@@ -30,17 +30,16 @@ export default function LoanActions({ loanId, status }: Props) {
   }
 
   return (
-    <Box sx={{ mt: 1.5 }}>
-      <Button
-        size="small"
-        color="error"
-        variant="outlined"
-        onClick={handleCancel}
-        disabled={loading}
-        startIcon={<CancelIcon />}
-      >
-        {loading ? 'Storniere…' : 'Stornieren'}
-      </Button>
-    </Box>
+    <Button
+      size="small"
+      color="error"
+      variant="outlined"
+      onClick={handleCancel}
+      disabled={loading}
+      startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
+      sx={{ flexShrink: 0, fontSize: 11, py: 0.25 }}
+    >
+      {loading ? t('loans.cancelling') : t('loans.cancel')}
+    </Button>
   )
 }

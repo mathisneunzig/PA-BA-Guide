@@ -5,6 +5,7 @@ import { useCart, CartBook } from '@/lib/cart/CartContext'
 import { CircularProgress, IconButton, Snackbar, Alert, Tooltip } from '@mui/material'
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart'
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   book: CartBook
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function CartButton({ book, size = 'small' }: Props) {
+  const { t } = useTranslation()
   const { has, add, remove } = useCart()
   const inCart = has(book.id)
   const [loading, setLoading] = useState(false)
@@ -31,20 +33,20 @@ export default function CartButton({ book, size = 'small' }: Props) {
     const result = await add(book)
     setLoading(false)
     if (!result.ok) {
-      setSnackError(result.error ?? 'Fehler beim Hinzufügen')
+      setSnackError(result.error ?? t('cart.addError'))
     }
   }
 
   return (
     <>
-      <Tooltip title={inCart ? 'Aus Warenkorb entfernen' : 'In Warenkorb legen'}>
+      <Tooltip title={inCart ? t('cart.removeFromCart') : t('cart.addToCart')}>
         <span>
           <IconButton
             size={size}
             color={inCart ? 'warning' : 'default'}
             onClick={handleClick}
             disabled={loading}
-            aria-label={inCart ? 'Aus Warenkorb entfernen' : 'In Warenkorb legen'}
+            aria-label={inCart ? t('cart.removeFromCart') : t('cart.addToCart')}
           >
             {loading
               ? <CircularProgress size={size === 'small' ? 16 : 20} color="inherit" />

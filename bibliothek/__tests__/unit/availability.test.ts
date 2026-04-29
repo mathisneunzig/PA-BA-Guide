@@ -5,10 +5,12 @@ jest.mock('../../lib/prisma', () => ({
       findUniqueOrThrow: jest.fn(),
       update: jest.fn(),
     },
-    loan: {
+    loanItem: {
       findFirst: jest.fn(),
       count: jest.fn(),
-      updateMany: jest.fn(),
+    },
+    cartHold: {
+      count: jest.fn(),
     },
   },
 }))
@@ -16,15 +18,16 @@ jest.mock('../../lib/prisma', () => ({
 import { getEarliestAvailableDate, countOverlappingLoans } from '@/lib/loans/availability'
 import { LoanStatus } from '@prisma/client'
 
-// Get the mock object AFTER mock is set up
 const prismaMock = jest.requireMock<{ prisma: {
   book: { findUniqueOrThrow: jest.Mock; update: jest.Mock }
-  loan: { findFirst: jest.Mock; count: jest.Mock; updateMany: jest.Mock }
+  loanItem: { findFirst: jest.Mock; count: jest.Mock }
+  cartHold: { count: jest.Mock }
   $transaction: jest.Mock
 } }>('../../lib/prisma').prisma
 
 beforeEach(() => {
   jest.clearAllMocks()
+  prismaMock.cartHold.count.mockResolvedValue(0)
 })
 
 describe('getEarliestAvailableDate', () => {
@@ -39,7 +42,7 @@ describe('getEarliestAvailableDate', () => {
   it('returns day after earliest dueDate when no copies available', async () => {
     prismaMock.book.findUniqueOrThrow.mockResolvedValue({ availableCopies: 0 })
     const dueDate = new Date('2026-07-16')
-    prismaMock.loan.findFirst.mockResolvedValue({ dueDate })
+    prismaMock.loanItem.findFirst.mockResolvedValue({ group: { dueDate } })
 
     const result = await getEarliestAvailableDate('0201234567897')
     const expected = new Date('2026-07-17')
@@ -48,7 +51,7 @@ describe('getEarliestAvailableDate', () => {
 
   it('returns today if no copies available but no active loans found', async () => {
     prismaMock.book.findUniqueOrThrow.mockResolvedValue({ availableCopies: 0 })
-    prismaMock.loan.findFirst.mockResolvedValue(null)
+    prismaMock.loanItem.findFirst.mockResolvedValue(null)
 
     const today = new Date()
     const result = await getEarliestAvailableDate('0201234567897')
@@ -58,7 +61,7 @@ describe('getEarliestAvailableDate', () => {
 
 describe('countOverlappingLoans', () => {
   it('returns 0 when no overlapping loans', async () => {
-    prismaMock.loan.count.mockResolvedValue(0)
+    prismaMock.loanItem.count.mockResolvedValue(0)
 
     const result = await countOverlappingLoans(
       '0201234567897',
@@ -69,7 +72,7 @@ describe('countOverlappingLoans', () => {
   })
 
   it('returns correct count with overlaps', async () => {
-    prismaMock.loan.count.mockResolvedValue(2)
+    prismaMock.loanItem.count.mockResolvedValue(2)
 
     const result = await countOverlappingLoans(
       '0201234567897',
@@ -77,7 +80,7 @@ describe('countOverlappingLoans', () => {
       new Date('2026-10-31'),
     )
     expect(result).toBe(2)
-    expect(prismaMock.loan.count).toHaveBeenCalledWith(
+    expect(prismaMock.loanItem.count).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           bookId: '0201234567897',

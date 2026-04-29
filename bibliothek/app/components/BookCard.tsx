@@ -3,6 +3,7 @@
 import { Box, Card, CardActionArea, CardContent, CardMedia, Chip, Stack, Typography } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import CartButton from '@/app/components/CartButton'
+import { useTranslation } from 'react-i18next'
 
 interface Book {
   id: string
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function BookCard({ book, isLoggedIn, isAdmin }: Props) {
+  const { t } = useTranslation()
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <CardActionArea href={`/books/${book.id}`} sx={{ flex: 1 }}>
@@ -50,7 +52,7 @@ export default function BookCard({ book, isLoggedIn, isAdmin }: Props) {
           )}
           <Box sx={{ mt: 1 }}>
             <Chip
-              label={book.availableCopies > 0 ? `Verfügbar (${book.availableCopies}/${book.totalCopies})` : 'Nicht verfügbar'}
+              label={book.availableCopies > 0 ? t('books.available', { available: book.availableCopies, total: book.totalCopies }) : t('books.unavailable')}
               color={book.availableCopies > 0 ? 'success' : 'default'}
               size="small"
             />

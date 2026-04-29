@@ -4,6 +4,7 @@ jest.mock('../../lib/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -13,6 +14,7 @@ jest.mock('../../lib/prisma', () => ({
 jest.mock('../../lib/email/send', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  sendNewGuestEmail: jest.fn().mockResolvedValue(undefined),
 }))
 
 jest.mock('../../lib/utils/hash', () => ({
@@ -51,11 +53,16 @@ describe('POST /api/auth/register', () => {
     email: 'ada@example.com',
     password: 'Secret123!',
     passwordConfirm: 'Secret123!',
+    agbAccepted: true,
   }
 
   it('creates new user and returns 201', async () => {
     prisma.user.findUnique.mockResolvedValue(null) // no existing user
-    prisma.user.create.mockResolvedValue({ id: 'u1', email: validBody.email, username: validBody.username })
+    prisma.user.create.mockResolvedValue({
+      id: 'u1', email: validBody.email, username: validBody.username,
+      firstname: validBody.firstname, lastname: validBody.lastname,
+      phone: null, createdAt: new Date(),
+    })
 
     const req = makeReq('POST', 'http://localhost/api/auth/register', validBody)
     const res = await register(req)

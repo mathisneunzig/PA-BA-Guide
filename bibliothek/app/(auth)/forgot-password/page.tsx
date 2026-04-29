@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, TextField, Typography } from '@mui/material'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import EmailIcon from '@mui/icons-material/Email'
@@ -11,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const { t } = useTranslation()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,7 +26,7 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.error ?? 'Etwas ist schiefgelaufen')
+      if (!res.ok) setError(data.error ?? t('auth.forgotError'))
       else setMessage(data.message)
     } catch {
       setError('Ein unerwarteter Fehler ist aufgetreten')
@@ -39,26 +41,26 @@ export default function ForgotPasswordPage() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <MenuBookIcon sx={{ fontSize: 48, color: 'primary.main' }} />
-            <Typography variant="h5" sx={{ mt: 1 }}>Passwort vergessen</Typography>
-            <Typography variant="body2" color="text.secondary">Wir senden dir einen Link zum Zurücksetzen</Typography>
+            <Typography variant="h5" sx={{ mt: 1 }}>{t('auth.forgotTitle')}</Typography>
+            <Typography variant="body2" color="text.secondary">{t('auth.forgotSubtitle')}</Typography>
           </Box>
 
           {message ? (
             <Alert severity="success" sx={{ mb: 2 }}>
               {message}
               <Box sx={{ mt: 1 }}>
-                <Link href="/login" style={{ fontSize: 13 }}>Zurück zur Anmeldung</Link>
+                <Link href="/login" style={{ fontSize: 13 }}>{t('auth.backToLogin')}</Link>
               </Box>
             </Alert>
           ) : (
             <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {error && <Alert severity="error">{error}</Alert>}
-              <TextField label="E-Mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required fullWidth autoFocus />
+              <TextField label={t('auth.emailLabel')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required fullWidth autoFocus />
               <Button type="submit" variant="contained" size="large" fullWidth disabled={loading} startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <EmailIcon />}>
-                {loading ? 'Senden…' : 'Reset-Link senden'}
+                {loading ? t('auth.forgotLoading') : t('auth.forgotButton')}
               </Button>
               <Typography variant="body2" align="center">
-                <Link href="/login" style={{ textDecoration: 'none' }}>Zurück zur Anmeldung</Link>
+                <Link href="/login" style={{ textDecoration: 'none' }}>{t('auth.backToLogin')}</Link>
               </Typography>
             </Box>
           )}

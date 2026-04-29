@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 /**
  * Return the earliest date a book could be available.
  * - If availableCopies > 0 → today
- * - Otherwise → the day after the earliest active/reserved loan's dueDate
+ * - Otherwise → the day after the earliest active/reserved item's group dueDate
  */
 export async function getEarliestAvailableDate(bookId: string): Promise<Date> {
   const book = await prisma.book.findUniqueOrThrow({
@@ -14,24 +14,24 @@ export async function getEarliestAvailableDate(bookId: string): Promise<Date> {
   })
   if (book.availableCopies > 0) return new Date()
 
-  const earliest = await prisma.loan.findFirst({
+  const earliest = await prisma.loanItem.findFirst({
     where: {
       bookId,
       status: { in: [LoanStatus.ACTIVE, LoanStatus.RESERVED] },
     },
-    orderBy: { dueDate: 'asc' },
-    select: { dueDate: true },
+    orderBy: { group: { dueDate: 'asc' } },
+    select: { group: { select: { dueDate: true } } },
   })
 
   if (!earliest) return new Date()
 
-  const next = new Date(earliest.dueDate)
+  const next = new Date(earliest.group.dueDate)
   next.setDate(next.getDate() + 1)
   return next
 }
 
 /**
- * Count how many ACTIVE or RESERVED loans overlap with [startDate, endDate].
+ * Count how many ACTIVE or RESERVED loan items overlap with [startDate, endDate].
  * Also counts active CartHolds from other users (not the requesting user),
  * so that cart reservations block concurrent reservations.
  */
@@ -41,13 +41,15 @@ export async function countOverlappingLoans(
   endDate: Date,
   excludeHoldsForUserId?: string,
 ): Promise<number> {
-  const [loanCount, holdCount] = await Promise.all([
-    prisma.loan.count({
+  const [itemCount, holdCount] = await Promise.all([
+    prisma.loanItem.count({
       where: {
         bookId,
         status: { in: [LoanStatus.ACTIVE, LoanStatus.RESERVED] },
-        startDate: { lte: endDate },
-        dueDate: { gte: startDate },
+        group: {
+          startDate: { lte: endDate },
+          dueDate: { gte: startDate },
+        },
       },
     }),
     prisma.cartHold.count({
@@ -58,6 +60,5 @@ export async function countOverlappingLoans(
       },
     }),
   ])
-  return loanCount + holdCount
+  return itemCount + holdCount
 }
-

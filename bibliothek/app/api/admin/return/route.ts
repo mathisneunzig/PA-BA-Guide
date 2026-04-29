@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth/dal'
 import { LoanStatus } from '@prisma/client'
+import { returnLoanItem } from '@/lib/loans/loan-service'
 import { sendBookAvailableEmail } from '@/lib/email/send'
 
 /**
@@ -9,9 +10,9 @@ import { sendBookAvailableEmail } from '@/lib/email/send'
  * Body: { userId: string, bookIds: string[] }  — bookIds are EAN-13 barcodes
  *
  * For each bookId:
- *  1. Find the ACTIVE or OVERDUE loan for this user+book
- *  2. Mark it RETURNED, increment availableCopies
- *  3. Find the next RESERVED loan for the same book (any user) and notify them by email
+ *  1. Find the ACTIVE or OVERDUE LoanItem for this user+book
+ *  2. Mark it RETURNED (returnLoanItem handles availableCopies + group status)
+ *  3. Find the next RESERVED item for the same book (any user) and notify them
  */
 export async function POST(request: NextRequest) {
   await requireRole('ADMIN')
@@ -27,48 +28,33 @@ export async function POST(request: NextRequest) {
 
   for (const bookId of bookIds) {
     try {
-      await prisma.$transaction(async (tx) => {
-        // Find the active/overdue loan for this user+book
-        const loan = await tx.loan.findFirst({
-          where: {
-            bookId,
-            userId,
-            status: { in: [LoanStatus.ACTIVE, LoanStatus.OVERDUE] },
-          },
-        })
-
-        if (!loan) {
-          throw new Error('Keine aktive Ausleihe gefunden')
-        }
-
-        // Mark as returned
-        await tx.loan.update({
-          where: { id: loan.id },
-          data: { status: LoanStatus.RETURNED, returnedAt: new Date() },
-        })
-
-        // Increment available copies
-        await tx.book.update({
-          where: { id: bookId },
-          data: { availableCopies: { increment: 1 } },
-        })
-      })
-
-      results.push({ bookId, ok: true })
-
-      // After transaction: notify the next person waiting with a RESERVED loan
-      const nextReservation = await prisma.loan.findFirst({
-        where: { bookId, status: LoanStatus.RESERVED },
-        orderBy: { createdAt: 'asc' },
-        include: {
-          user: { select: { email: true } },
-          book: { select: { title: true, regalnummer: true } },
+      // Find the active/overdue LoanItem for this user+book
+      const item = await prisma.loanItem.findFirst({
+        where: {
+          bookId,
+          status: { in: [LoanStatus.ACTIVE, LoanStatus.OVERDUE] },
+          group: { userId },
         },
       })
 
-      if (nextReservation?.user.email) {
+      if (!item) throw new Error('Keine aktive Ausleihe gefunden')
+
+      await returnLoanItem(item.id)
+
+      results.push({ bookId, ok: true })
+
+      // Notify the next person waiting with a RESERVED item
+      const nextReservation = await prisma.loanItem.findFirst({
+        where: { bookId, status: LoanStatus.RESERVED },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          group: { include: { user: { select: { email: true } } } },
+          book: { select: { title: true, regalnummer: true } },
+        },
+      })
+      if (nextReservation?.group.user.email) {
         sendBookAvailableEmail({
-          to: nextReservation.user.email,
+          to: nextReservation.group.user.email,
           bookTitle: nextReservation.book.title,
           regalnummer: nextReservation.book.regalnummer,
         }).catch(() => {})
