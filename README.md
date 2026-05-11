@@ -30,17 +30,19 @@ Kontakt
 <details>
 <summary>🏗 Formale Anforderungen</summary>
 
+Die formalen Anforderungen entsprechen den Regeln der DHBW. 
+
 | Merkmal                    | Praxisarbeit (PA)                     | Bachelorarbeit (BA)                         |
 |---------------------------|---------------------------------------|---------------------------------------------|
 | **Zeitraum**              | PA I, II oder III                     | 5. oder 6. Studiensemester                  |
 | **Bearbeitungszeit**      | 12 Wochen                             | 12 Wochen                                   |
 | **Umfang**                | ca. 20–30 Seiten (Textteil)           | ca. 40–60 Seiten (Textteil)                 |
 | **Sprache**               | Deutsch oder Englisch                 | Deutsch oder Englisch                       |
-| **Schriftart/-größe**     | z. B. Arial oder Times New Roman, 11pt| z. B. Arial oder Times New Roman, 11pt      |
+| **Schriftart/-größe**     | z. B. Arial oder Times New Roman, ca. 11pt| z. B. Arial oder Times New Roman, ca. 11pt      |
 | **Zeilenabstand**         | ca. 1,5-zeilig                         | ca. 1,5-zeilig                               |
-| **Ränder**                | Links: 3 cm, Rechts: 2,5 cm           | Links: 3 cm, Rechts: 2,5 cm                 |
+| **Ränder**                | ca. Links: 3 cm, Rechts: 2,5 cm           | ca. Links: 3 cm, Rechts: 2,5 cm                 |
 | **Abgabe an der DHBW**    | Studiengangsleitung fragen | Studiengangsleitung fragen |
-| **Abgabe bei mir**        | Digital als .pdf                      | Digital als .pdf                            |
+| **Abgabe bei mir**        | Digital als .pdf per Mail                      | Über Moodle                            |
 | **Eigenständigkeitserklärung** | Pflicht                       | Pflicht                                     |
 | **Zitierstil**            | Frei wählbar, aber konsequent         | Frei wählbar, aber konsequent               |
 
