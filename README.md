@@ -275,8 +275,8 @@ Sie beschreibt die **konkrete Anwendung der wissenschaftlichen Methode**, z. B
 <details>
 <summary>🛠 Zitieren & Plagiat</summary>
 
-- Direkte Zitate: in Anführungszeichen mit Seitenzahl  
-- Indirekte Zitate: paraphrasiert, aber mit Quelle  
+- Direkte Zitate: in Anführungszeichen mit Quellenangabe
+- Indirekte Zitate: paraphrasiert mit Quellenangabe
 - Sekundärzitate vermeiden  
 - Literatur im Verzeichnis aufnehmen  
 - Bei Unsicherheiten: Nachfragen!
@@ -288,7 +288,7 @@ Sie beschreibt die **konkrete Anwendung der wissenschaftlichen Methode**, z. B
 <details>
 <summary>🤖 Einsatz von AI</summary>
 
-KI-gestützte Tools wie ChatGPT oder BARD können bei der Recherche,
+KI-gestützte Tools wie ChatGPT, Gemini, Claude oder BARD können bei der Recherche,
 beim Strukturieren von Argumenten oder als Ideengeber sehr hilfreich sein.
 Sie arbeiten auf Basis maschinellen Lernens und reihen Worte mit der
 größten Passwahrscheinlichkeit aneinander. Dennoch gilt es einige Punkte
@@ -298,10 +298,11 @@ zu beachten:
 
 - **Einsatzmöglichkeiten**: Gliederungsvorschläge, Formulierungshilfen,
   Zusammenfassungen, Übersetzungen.
-- **Eingeschränkte Trainingsdaten**: Aktuelle und wissenschaftliche
-  Quellen können fehlen.
+- **Eingeschränkte Trainingsdaten**: Aktuelle(!) und wissenschaftliche
+  Quellen können fehlen, was zu Fehlschlüssen führen könnte.
 - **Keine Gewähr für Richtigkeit**: Inhalte, Zitate oder Quellen können
   falsch sein.
+- **Halluzinationen**: Vor allem beim Ausfüllen des Literaturverzeichnisses oder bei der Literaturrecherche werden viele Informationen generiert, die in Realität nicht existieren. Nicht existente Quellen im Literaturverzeichnis sind sehr unschön. 
 
 ### Rechtliche Rahmenbedingungen
 
